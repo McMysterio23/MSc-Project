@@ -1,0 +1,111 @@
+Yes, it’s definitely possible to extract the **Full Width at Half Maximum (FWHM)** of each peak in the cross-correlation function and then plot it as a function of \( \tau \).
+
+### Steps to Extract FWHM:
+
+1. **Identify the Peaks**: First, we need to identify the peaks in the cross-correlation function. These peaks correspond to the places where the correlation function is maximized.
+  
+2. **Find Half-Maximum**: For each peak, find the value corresponding to half of the peak's maximum height.
+
+3. **Measure FWHM**: Once you’ve located the half-maximum points, measure the width of the peak at this level. The FWHM is simply the distance between the two points where the function reaches half of its maximum value.
+
+4. **Plot FWHM vs \( \tau \)**: For each peak (corresponding to a different \( \tau \)), calculate its FWHM and plot it as a function of \( \tau \).
+
+### Here's how we can implement this in Python:
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import find_peaks
+
+# Parameters
+sigma = 1.0  # Pulse width
+sigma_j_gen = 0.5  # Jitter in generation (temporal jitter standard deviation)
+sigma_j_ps = 0.5  # Jitter in pulse shape (temporal jitter standard deviation)
+T_rep = 5.0  # Pulse repetition period
+num_pulses = 100  # Number of pulses in the train
+time_range = 50  # Total time window
+I_0 = 1.0  # Intensity scale factor
+
+# Generate pulse centers with jitter (both generation jitter and pulse shape jitter)
+pulse_centers = np.arange(-time_range, time_range, T_rep)  # Ideal pulse positions
+jitter_gen = np.random.normal(0, sigma_j_gen, size=pulse_centers.shape)  # Generation jitter
+jitter_ps = np.random.normal(0, sigma_j_ps, size=pulse_centers.shape)  # Pulse shape jitter
+pulse_centers_with_jitter = pulse_centers + jitter_gen + jitter_ps  # Apply jitter
+
+# Define time axis
+t = np.linspace(-time_range, time_range, 5000)
+
+# Construct intensity profiles at time t and t - tau
+def intensity(t, pulse_centers, sigma):
+    intensity_profile = np.zeros_like(t)
+    for t_i in pulse_centers:
+        intensity_profile += I_0 * np.exp(-(t - t_i)**2 / (2 * sigma**2))  # Gaussian field
+    return intensity_profile ** 2  # Return intensity (squared field)
+
+# Compute intensities for two pulse trains at t and t - tau
+tau_vals = np.linspace(-10, 10, 300)  # Delay values for cross-correlation
+cross_corr_vals = np.zeros_like(tau_vals)
+
+for idx, tau in enumerate(tau_vals):
+    I_t = intensity(t, pulse_centers_with_jitter, sigma)  # Intensity at time t
+    I_t_minus_tau = intensity(t, pulse_centers_with_jitter - tau, sigma)  # Intensity at time t - tau
+    cross_corr_vals[idx] = np.mean(I_t * I_t_minus_tau)  # Cross-correlation (product of intensities)
+
+# Normalize the cross-correlation
+cross_corr_vals /= np.max(np.abs(cross_corr_vals))
+
+# Find the peaks in the cross-correlation
+peaks, _ = find_peaks(cross_corr_vals)
+
+# Initialize list to store FWHM values
+fwhm_values = []
+
+# For each peak, calculate the FWHM
+for peak in peaks:
+    # Get the maximum value at the peak
+    max_value = cross_corr_vals[peak]
+    
+    # Calculate the half-maximum
+    half_max = max_value / 2
+    
+    # Find the left and right bounds where the cross-correlation reaches half-maximum
+    left_idx = np.where(cross_corr_vals[:peak] < half_max)[0][-1]  # Last index before the peak
+    right_idx = np.where(cross_corr_vals[peak:] < half_max)[0][0] + peak  # First index after the peak
+    
+    # Calculate the FWHM as the difference in indices
+    fwhm = t[right_idx] - t[left_idx]
+    fwhm_values.append(fwhm)
+
+# Plot FWHM as a function of tau
+plt.figure(figsize=(10, 6))
+plt.plot(tau_vals[peaks], fwhm_values, 'bo-', label='FWHM vs tau')
+plt.title(r'FWHM of Cross-Correlation Peaks vs $\tau$', fontsize=14)
+plt.xlabel(r'$\tau$', fontsize=12)
+plt.ylabel('FWHM (Time)', fontsize=12)
+plt.legend()
+plt.grid(True)
+plt.show()
+```
+
+### Explanation:
+
+1. **Cross-Correlation Calculation**: This is done as before, summing the intensities at times \( t \) and \( t - \tau \), and computing the correlation for each value of \( \tau \).
+
+2. **Find Peaks**: Using `find_peaks` from `scipy.signal`, we identify where the cross-correlation function has peaks (i.e., maxima). These are the points we are interested in for calculating FWHM.
+
+3. **FWHM Calculation**:
+   - For each peak, we find the maximum value and then determine where the function reaches half of this maximum (the half-maximum).
+   - We then find the points on the left and right of the peak where the function intersects this half-maximum value.
+   - The **FWHM** is simply the difference between these two intersection points (the width of the peak at half-max).
+
+4. **Plotting**: Finally, we plot the FWHM values as a function of \( \tau \).
+
+### Expected Outcome:
+
+- The plot will show the FWHM for each peak, as a function of the time delay \( \tau \).
+- You should see that as \( \tau \) increases, the width of the peaks (FWHM) increases, which is expected since the pulses become more separated in time as the distance between them increases.
+
+### Tuning:
+You can experiment with the parameters, such as the jitter (`sigma_j_gen`, `sigma_j_ps`), to observe how different amounts of jitter affect the shape and width of the peaks.
+
+Let me know if this helps, or if you would like to adjust the approach further!
