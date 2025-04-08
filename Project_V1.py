@@ -18,7 +18,9 @@ import numpy.typing as npt
 
 
 # %% FILE PATHS
-RAW_DATA_PATH = "C:/Users/Maccarinelli/Desktop/RAW_DATA/"
+RAW_DATA_PATH_OFFICE = "C:/Users/Maccarinelli/Desktop/RAW_DATA/"
+RAW_DATA_PATH_LAPTOP = "/Users/andreamaccarinelli/Desktop/LION/RAW_DATA/"
+
 
 Zerops_C2 = "EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C2_2025-03-26T11_50_30.bin"
 Zerops_C3 = "EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-03-26T11_50_30.bin"
@@ -337,10 +339,36 @@ coincidence_counts, taus, chunktimes = get_coincidence_counts_from_files(
 
 #timestamps, time_differences = process_snsdp_data(RAW_DATA_PATH+Zerops_C3, include_start_index=False)
 
+'''
+#ARE YOU IN THE OFFICE OR AT HOME ?
+
+SET THE VARIABLE LOCATION IN THE CORRECT WAY !!!
+
+FOR LOCATION == 1 ----> I AM CURRENTLY IN MY OFFICE WORKING
+FOR LOCATION == 0 ----> I AM CURRENTLY WORKING FROM HOME 
+
+
+'''
+
+#LOCATION = 1
+LOCATION = 0
+
+
+if (LOCATION==1):
+        
+            PATH=RAW_DATA_PATH_OFFICE
+else:  
+            PATH = RAW_DATA_PATH_LAPTOP
+            
+
 coincidence_counts, taus = get_coincidence_counts_from_files_partial(
-    "C:/Users/Maccarinelli/Desktop/RAW_DATA/EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C2_2025-03-26T11_50_30.bin",
-    "C:/Users/Maccarinelli/Desktop/RAW_DATA/EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-03-26T11_50_30.bin",
+    PATH+"EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C2_2025-03-26T11_50_30.bin",
+    PATH+"EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-03-26T11_50_30.bin",
     percentage=40,
     stepsize_ps=1000,
     maxtime_ps=1000000000,
 )
+
+
+
+
