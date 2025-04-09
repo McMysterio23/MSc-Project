@@ -2,6 +2,27 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def plotstream(lg, divider=None):
+    
+    """
+    Plots a histogram of photon arrival times modulo the laser period.
+
+    Parameters:
+    - lg: A callable that returns a stream of photon arrival times (as a list or array).
+          This object is expected to have attributes:
+              - period: the laser repetition period
+              - pulse_width: the laser pulse width
+    - divider: Optional horizontal line value to indicate a reference/count threshold.
+
+    Behavior:
+    - If multiple streams are returned (as a list), each stream is processed individually.
+    - For each stream:
+        - Times are wrapped modulo the laser period.
+        - A histogram is generated with bin width = pulse_width / 5.
+        - The histogram is plotted on a semi-log scale (log y-axis).
+        - If 'divider' is provided, a horizontal line is drawn for reference.
+    - Displays the plot.
+    """
+    
     stream = lg()
     if type(stream) is list:
         #stream = np.hstack([s for s in stream])
@@ -26,6 +47,25 @@ def plotstream(lg, divider=None):
     plt.show()
 
 def arrival_distribution(lg):
+    
+    """
+    Plots a histogram of time differences between consecutive photon arrivals.
+
+    Parameters:
+    - lg: A callable that returns a stream of photon arrival times (as a list or array).
+          This object is expected to have attributes:
+              - period: the laser repetition period
+              - pulse_width: the laser pulse width
+
+    Behavior:
+    - If multiple streams are returned (as a list), each stream is processed individually.
+    - For each stream:
+        - Calculates time differences between consecutive photon events (delta t).
+        - Plots a histogram of these differences with bin width = pulse_width / 5.
+    - The y-axis is logarithmic to better visualize a wide range of counts.
+    - Displays the plot with appropriate labels and title.
+    """
+    
     stream = lg()
     if type(stream) is list:
         #stream = np.hstack([s for s in stream])
@@ -44,6 +84,35 @@ def arrival_distribution(lg):
     plt.show()
 
 def statistics_test(lg):
+    
+    """
+   Performs statistical analysis on a photon stream to estimate signal and background contributions.
+
+   Parameters:
+   - lg: A callable returning a photon arrival time stream (list or array), with attributes:
+         - period: laser repetition period
+         - pulse_width: laser pulse width
+         - N_pulses: total number of laser pulses
+         - mean_photons_in_pulse: expected photons per pulse
+         - mean_photons_in_background: expected background photons per pulse
+         - mean_darkcounts: expected dark counts per pulse
+
+   Behavior:
+   - Flattens the stream if it contains multiple entries.
+   - Calculates a histogram of photon arrival times modulo the laser period.
+   - Prints three methods to estimate signal (pulse) vs. background photons:
+       1. **Time dividing**: Counts photons inside vs. outside the pulse window.
+       2. **Integration method**: Uses a flat background estimate to isolate pulse signal.
+       3. **Direct counting**: Identifies counts above a noise threshold (~4σ above mean).
+   - Each method outputs:
+       - Estimated number of signal and background photons per pulse.
+       - Photon-to-Background Ratio (PER).
+   
+   Notes:
+   - This is useful to evaluate the efficiency of time-gated photon detection.
+   - Optional: Uncomment `plotstream(lg, divider)` to visualize the stream with the threshold.
+   """
+    
     stream = lg()
     if type(stream) is list:
         stream = np.hstack([s for s in stream])

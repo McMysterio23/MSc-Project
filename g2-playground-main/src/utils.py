@@ -3,26 +3,98 @@ from scipy.signal import correlate
 import matplotlib.pyplot as plt
 
 def calc_SNR(A, B):
+    
+    """
+    Calculates the signal-to-noise ratio (SNR) in decibels (dB).
+
+    Parameters:
+    - A: Signal power or intensity.
+    - B: Noise power or intensity.
+
+    Returns:
+    - SNR value in dB: 10 * log10(A / B)
+    """
+    
     return 10 * np.log10(A / B)
 
 def calc_SNR_e(A, B, A_e, B_e):
+    
+    """
+    Calculates the propagated error in the signal-to-noise ratio (SNR).
+
+    Parameters:
+    - A: Signal power or intensity.
+    - B: Noise power or intensity.
+    - A_e: Uncertainty (error) in A.
+    - B_e: Uncertainty (error) in B.
+
+    Returns:
+    - Propagated uncertainty in SNR (in dB) using error propagation formulas.
+    """
+    
     return np.sqrt(
     (10*A_e/(A*np.log(10)))**2
     + (10*B_e/(B*np.log(10)))**2
     )
 
 def gaussian(x, A, b, hwhm, d):
+    
+    """
+   Evaluates a Gaussian function.
+
+   Parameters:
+   - x: Input array or value.
+   - A: Amplitude of the Gaussian.
+   - b: Baseline offset.
+   - hwhm: Half-width at half-maximum (controls the spread).
+   - d: Center of the peak.
+
+   Returns:
+   - Value(s) of the Gaussian function at x.
+   """
+    
     sigma = hwhm * 2 / (2*np.sqrt(2*np.log(2)))
     return A*np.exp(-0.5*((x-d)/sigma)**2) + b
 
 
 def lorentzian(x, A, b, hwhm, a):
+    
+    """
+   Evaluates a Lorentzian function.
+
+   Parameters:
+   - x: Input array or value.
+   - A: Amplitude of the Lorentzian.
+   - b: Baseline offset.
+   - hwhm: Half-width at half-maximum (defines peak width).
+   - a: Center position of the peak.
+
+   Returns:
+   - Value(s) of the Lorentzian function at x.
+   """
+    
     # peak = np.exp(-(x-a)**2/w**2)
     peak = (1+(x-a)**2/hwhm**2)**(-1)
     return np.abs(A)*peak + np.abs(b)
 
 def decluster_indices(array, idxs, distance=5):
-    """Takes an array and indices of the array. The function returns the index where the array is maximum for groups of indices that are close together."""
+    """Takes an array and indices of the array. 
+    The function returns the index where the array is maximum for groups of indices that are close together.
+    
+    FELLOW FRIEND of mine description : 
+    
+    De-clusters close indices by selecting the index of the local maximum within each cluster.
+
+    Parameters:
+    - array: Original data array.
+    - idxs: Array of candidate indices (e.g., from thresholding).
+    - distance: Minimum separation between peaks to consider them distinct.
+
+    Returns:
+    - Array of de-clustered peak indices, where each index corresponds to the maximum value in its group.
+    
+    
+    """
 
 
     # Then find clusters (because many values are lower than the threshold)
@@ -57,6 +129,20 @@ def decluster_indices(array, idxs, distance=5):
     return np.array(peaks_idxs)
 
 def peakfinder(arr, thresh=None, distance_=1, plot=False):
+    
+    """
+   Identifies peaks in a 1D array based on curvature (second derivative).
+
+   Parameters:
+   - arr: Input array to search for peaks.
+   - thresh: Threshold multiplier for peak sensitivity (default: 2).
+   - distance_: Minimum spacing between detected peaks.
+   - plot: If True, plots intermediate steps for visualization.
+
+   Returns:
+   - Array of peak indices where the most significant changes (dips) in curvature occur.
+   """
+    
     ddarr = np.diff(np.diff(arr))
     if thresh is None:
         thresh = 2
@@ -87,6 +173,24 @@ def find_periodicity(geetwo, plot=False, threshold=None):
     """This is advanced period finding
     First a Fourier transform is used to find an estimate of the period. This estimate is then refined by finding the peak of a
     correlation within the produced uncertainty window.
+    
+    FELLOW COLLAGUE DESCRIPTION
+    
+   Determines the period of a periodic signal using a hybrid Fourier-correlation approach.
+
+   Parameters:
+   - geetwo: Input 1D array representing a periodic signal.
+   - plot: If True, plots the correlation and peak for visual confirmation.
+   - threshold: Optional threshold parameter passed to peak detection.
+
+   Returns:
+   - period: Estimated period (in samples) between repeating features in the signal.
+
+   Method:
+   1. A coarse period estimate is obtained using a Fourier transform.
+   2. The estimate is refined by locating the peak of an autocorrelation slice around the estimated region.
+    
+    
     """
     guess_period, delta_period = find_periodicity_(geetwo, plot=plot, method="fourier", period_error=True, threshold=threshold)
     
@@ -121,7 +225,32 @@ def find_periodicity(geetwo, plot=False, threshold=None):
 
 
 def find_periodicity_(geetwo, plot=False, threshold=None, method="fourier", period_error=False):
-    """Given an array geetwo of a periodic peaks, return the distance of the peaks in samples, idx_delta."""
+    """Given an array geetwo of a periodic peaks, return the distance of the peaks in samples, idx_delta.
+    
+    Fellow Collague description
+    
+    Computes the periodicity of a signal using either Fourier transform or autocorrelation.
+
+    Parameters:
+    - geetwo: Input 1D array with repeating peaks.
+    - plot: If True, plots the intermediate steps for verification.
+    - threshold: Optional threshold for peak detection sensitivity.
+    - method: Either "fourier" (default) or "correlation".
+    - period_error: If True (and using "fourier"), also returns the estimated uncertainty.
+
+    Returns:
+    - period: Estimated period in number of samples.
+    - (optional) delta_period: Estimated error in the period (only with method="fourier" and period_error=True).
+
+    Notes:
+    - "fourier" method finds dominant frequency via power spectrum and inverts it to get the period.
+    - "correlation" method finds lag between strongest peaks in the autocorrelation of the signal.
+    
+    
+    
+    
+    
+    """
 
     if method == "fourier":
         padded_geetwo = geetwo #* np.hamming(geetwo.size)
