@@ -1,3 +1,4 @@
+# %% jeez
 # -*- coding: utf-8 -*-
 """
 Created on Wed Apr  2 15:28:59 2025
@@ -17,6 +18,16 @@ from scipy.optimize import curve_fit
 from scipy.stats import skewnorm
 from pathlib import Path
 
+import sys
+
+
+import sys
+from pathlib import Path
+
+# Add the src folder to the system path
+sys.path.append(str(Path(__file__).parent / 'src'))
+
+# Now you can import from src
 from src.HBT_analysis import process_geetwo, calculate_photon_ratio_error, lorentzian, make_fit
 from src.photon_generator import LightGenerator, QuantumDot, Detector, BeamSplitter, DeadTime, multi_stream_wrapper, Delay
 from src.plot_utils import plotstream, arrival_distribution, statistics_test
@@ -24,22 +35,40 @@ from src.HanburyBrownTwiss import g2_experiment, g2_tdc
 from src.utils import gaussian
 
 
+
+
+"""
+
+
+# Add the src folder to the system path
+sys.path.append(str(Path(__file__).parent / 'src'))
+
+from src.HBT_analysis import process_geetwo, calculate_photon_ratio_error, lorentzian, make_fit
+from src.photon_generator import LightGenerator, QuantumDot, Detector, BeamSplitter, DeadTime, multi_stream_wrapper, Delay
+from src.plot_utils import plotstream, arrival_distribution, statistics_test
+from src.HanburyBrownTwiss import g2_experiment, g2_tdc
+from src.utils import gaussian
+
+
+
+
+"""
+
 # %% FILE PATHS
-RAW_DATA_PATH_OFFICE = "/Users/Maccarinelli/Desktop/RAW/"
-RAW_DATA_PATH_LAPTOP = "/Users/andreamaccarinelli/Desktop/LION/RAW_DATA/"
+PATH = Path("RAW/")
+
 
 
 # Specify the folder path where your raw data is stored
-folder_path = Path(RAW_DATA_PATH_OFFICE)
+folder_path = Path(PATH)
 file_list = [f.name for f in folder_path.iterdir() if f.is_file() and f.suffix == '.bin'] 
 
-pulse_lengths = [-10, -10, -15, -15, -20, -20, -25, -25, -25, -25, -35, -35, -40, -40,-40, -40, -45, -45, -50, -50, -55, -55, 
-                 -5, -5, -60, -60, -61, -61, -62, -62, -65, -65, -70, -70, -75, -75, -75, -75, -75, -75, -75, -76, -76, -77, -77, -80, -80, 0, 0, 0, 0]
+# pulse_lengths = [-10, -10, -15, -15, -20, -20, -25, -25, -25, -25, -35, -35, -40, -40,-40, -40, -45, -45, -50, -50, -55, -55, 
+#                  -5, -5, -60, -60, -61, -61, -62, -62, -65, -65, -70, -70, -75, -75, -75, -75, -75, -75, -75, -76, -76, -77, -77, -80, -80, 0, 0, 0, 0]
+pulse_lengths = [-60, -60]
 
 # Combine them into a 2D NumPy array (first column: filenames, second column: pulse lengths)
 result_array = np.array(list(zip(file_list, pulse_lengths)))
-
-
 
 
 
@@ -186,31 +215,39 @@ def hbt_histogram_from_file2(filename,
     import matplotlib.pyplot as plt
     import numpy as np
 
+    print("filename:", filename)
+
     data = np.fromfile(filename, dtype=np.uint64)
     data = data.reshape(-1, 2)
     
-    # Convert Δt to picoseconds
-    delta_t_ps = data[:, 1] * clock_ps
+    # Convert index to picoseconds
+    # index_ps = data[:, 1] * clock_ps
+    # data = [] #WL erase stuff
 
     # Filter by max_tau_ps (optional)
-    delta_t_ps = delta_t_ps[delta_t_ps < max_tau_ps]
+    # delta_t_ps = delta_t_ps[delta_t_ps < max_tau_ps]
 
     # Build histogram directly from the delay times
     bins = np.arange(0, max_tau_ps, bin_width_ps)
-    counts, _ = np.histogram(delta_t_ps, bins=bins)
+    # counts, _ = np.histogram(data[:,0], bins=10, range=(0,12000))
+
+    plt.hist(data[:,0], bins=1000, range=(0,12000))
+    plt.xlim([4000,5000])
+    plt.show()
+
     
-    if VIEW:
-        plt.figure()
-        bin_centers = bins[:-1] + bin_width_ps / 2
-        plt.plot(bin_centers, counts, label="Histogram", color='blue')
-        plt.scatter(bin_centers, counts, s=3, color='darkorange', label="Data points")
-        plt.xlabel("Δt [ps]")
-        plt.ylabel("Counts")
-        plt.title(f"HBT Histogram (Start-Stop Δt) for pulse length {SHFT} ps")
-        plt.legend()
-        plt.grid(True)
-        plt.tight_layout()
-        plt.show()
+    # if VIEW:
+    #     plt.figure()
+    #     bin_centers = bins[:-1] + bin_width_ps / 2
+    #     plt.plot(bin_centers, counts, label="Histogram", color='blue')
+    #     plt.scatter(bin_centers, counts, s=3, color='darkorange', label="Data points")
+    #     plt.xlabel("Δt [ps]")
+    #     plt.ylabel("Counts")
+    #     plt.title(f"HBT Histogram (Start-Stop Δt) for pulse length {SHFT} ps")
+    #     plt.legend()
+    #     plt.grid(True)
+    #     plt.tight_layout()
+    #     plt.show()
         
     return bins, counts
 
@@ -394,8 +431,12 @@ def process_matching_rows(matching_rows, B_width, M_Tau, mode="even", SEE = Fals
     for i in range(start_index, len(matching_rows), 2):
         names = matching_rows[i, 0]
         pulse_length = int(matching_rows[i, 1])
+        
+        # Construct the relative path to the file
+        file_path = PATH / names
 
-        bins, counts = hbt_histogram_from_file2(filename = PATH + names ,
+        bins, counts = hbt_histogram_from_file2(filename = file_path ,
+                                                
                                                clock_ps=15200,
                                                bin_width_ps=B_width,
                                                max_tau_ps=M_Tau,
@@ -406,46 +447,23 @@ def process_matching_rows(matching_rows, B_width, M_Tau, mode="even", SEE = Fals
     return np.array(results, dtype=object)  # Use dtype=object for arrays of variable length
 
 
-# %% SET POSITION OF WORKPLACE
-
-'''
-#ARE YOU IN THE OFFICE OR AT HOME ?
-
-SET THE VARIABLE LOCATION IN THE CORRECT WAY !!!
-
-FOR LOCATION == 1 ----> I AM CURRENTLY IN MY OFFICE WORKING
-FOR LOCATION == 0 ----> I AM CURRENTLY WORKING FROM HOME 
-
-
-'''
-
-LOCATION = 1
-#LOCATION = 0
-
-
-if (LOCATION==1):
-        
-            PATH=RAW_DATA_PATH_OFFICE
-else:  
-            PATH = RAW_DATA_PATH_LAPTOP
-            
 
 # %%Execution of the Mio's Version of the code
 
 
-coincidence_counts, taus = get_coincidence_counts_from_files(
-    "C:/Users/Maccarinelli/Desktop/RAW/EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-03-26T11_50_30.bin",
-    "C:/Users/Maccarinelli/Desktop/RAW/EOM_-15ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-03-26T11_54_37.bin",
-    stepsize_ps=4000,
-    maxtime_ps=100000
-)
+# coincidence_counts, taus = get_coincidence_counts_from_files(
+#     PATH/"EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-03-26T11_50_30.bin",
+#     PATH/"EOM_-15ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-03-26T11_54_37.bin",
+#     stepsize_ps=4000,
+#     maxtime_ps=100000
+# )
 
-plt.figure()  # <- This line ensures a new figure for each iteration
-plt.plot(taus, coincidence_counts)
-plt.xlabel("Δt [ps]")
-plt.ylabel("Counts")
-#plt.title(f"HBT Histogram (successive Δt) for pulse length {SHFT} ps")
-plt.show()
+# plt.figure()  # <- This line ensures a new figure for each iteration
+# plt.plot(taus, coincidence_counts)
+# plt.xlabel("Δt [ps]")
+# plt.ylabel("Counts")
+# #plt.title(f"HBT Histogram (successive Δt) for pulse length {SHFT} ps")
+# plt.show()
 
 #coincidence_counts, taus, chunktimes = get_coincidence_counts_from_files("C:\Users\Maccarinelli\Desktop\RAW_DATA\EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C2_2025-03-26T11_50_30.bin", "C:\Users\Maccarinelli\Desktop\RAW_DATA\EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-03-26T11_50_30.bin", stepsize_ps=1000, maxtime_ps=1000000000)
 
@@ -463,202 +481,11 @@ Visual= True
 #do_skew_gauss_fit(bins, counts)
 
 
-match = find_eligible_files(result_array, 0)
+match = find_eligible_files(result_array, -60)
 
 results = []
 results = process_matching_rows(match, 1000, 1530000, mode="odd", SEE = Visual)
 
 
+
 # %%
-
-
-data = np.fromfile('C:/Users/Maccarinelli/Desktop/RAW_DATA/EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C2_2025-03-26T11_50_30.bin', dtype=np.uint64)
-
-# Check the shape of the data
-print(f"Data shape: {data.shape}")
-
-# If you expect two columns, reshape accordingly (if it was stored as pairs of values)
-# This assumes the binary data has timestamps and start index paired together
-data = data.reshape(-1, 2)
-
-# Inspect the first few rows
-print("First few rows of data:")
-print(data[:10])  # Displaying first 10 rows
-
-
-# %% Next
-
-Visual= True
-#Visual = False
-
-# Assuming the filename is correct and the file structure is as described
-def load_timestamps_from_file(filename):
-    """
-    Loads timestamps from a binary file.
-
-    Assumes the binary file contains a flat array of 64-bit unsigned integers (timestamps in picoseconds).
-    
-    Returns:
-        np.ndarray: 1D array of timestamps.
-    """
-    try:
-        timestamps = np.fromfile(filename, dtype=np.uint64)
-        return timestamps
-    except Exception as e:
-        print(f"Failed to load binary data from {filename}: {e}")
-        return np.array([])  # Return empty array to avoid crashes
-
-
-
-
-from numba import njit
-from numba_progress import ProgressBar
-import numpy as np
-
-from numba import njit, prange
-from numba_progress import ProgressBar
-import numpy as np
-
-from numba import njit, prange
-from numba_progress import ProgressBar
-import numpy as np
-
-def update_progress_bar(pbar, start_idx, end_idx):
-    """
-    Update the progress bar manually outside the numba function.
-    """
-    pbar.update(end_idx - start_idx)
-
-@njit(fastmath=True, nogil=True)
-def compute_autocorr_chunk(timestamps, start_idx, end_idx, bin_width_ps, max_tau_ps, counts):
-    """
-    Compute autocorrelation for a chunk of timestamps in parallel.
-    
-    Parameters:
-        timestamps (np.ndarray): Sorted 1D array of timestamps in picoseconds.
-        start_idx (int): Starting index for processing.
-        end_idx (int): Ending index for processing.
-        bin_width_ps (int): Width of histogram bins.
-        max_tau_ps (int): Maximum correlation time (τ) in picoseconds.
-        counts (np.ndarray): Array to accumulate counts.
-    """
-    num_bins = max_tau_ps // bin_width_ps
-    for i in range(start_idx, end_idx):
-        t0 = timestamps[i]
-        for j in range(i + 1, len(timestamps)):
-            dt = timestamps[j] - t0
-            if dt >= max_tau_ps:
-                break
-            bin_index = dt // bin_width_ps
-            counts[bin_index] += 1
-
-def start_stop_autocorr_histogram_numba(timestamps, bin_width_ps, max_tau_ps, chunk_size=100_000):
-    """
-    Fast autocorrelation computation with manual progress updates in parallel.
-
-    Parameters:
-        timestamps (np.ndarray): Sorted timestamps.
-        bin_width_ps (int): Width of histogram bins.
-        max_tau_ps (int): Max τ in picoseconds.
-        chunk_size (int): How many timestamps to process at once.
-
-    Returns:
-        bins (np.ndarray), counts (np.ndarray)
-    """
-    num_bins = max_tau_ps // bin_width_ps
-    counts = np.zeros(num_bins, dtype=np.uint32)
-    n = len(timestamps)
-    
-    # Create the progress bar here (outside the numba function)
-    pbar = ProgressBar(total=n)
-    
-    for start_idx in prange(0, n, chunk_size):
-        end_idx = min(start_idx + chunk_size, n)
-        compute_autocorr_chunk(timestamps, start_idx, end_idx, bin_width_ps, max_tau_ps, counts)
-        
-        # Update the progress bar manually
-        update_progress_bar(pbar, start_idx, end_idx)
-
-    bins = np.arange(num_bins) * bin_width_ps + bin_width_ps // 2
-    return bins, counts
-
-
-def process_matching_rows_by_mode(matching_rows, B_width, M_Tau, mode="even", SEE=False):
-    """
-    Processes even or odd rows of matching_rows, extracts timestamps,
-    and computes autocorrelation histograms for each file using Numba acceleration.
-    
-    Parameters:
-        matching_rows (np.ndarray): Each row contains [filename, ...]
-        B_width (int): Bin width in picoseconds
-        M_Tau (int): Max Δt (ps) to consider
-        mode (str): Selects "even" or "odd" rows to process
-        SEE (bool): Whether to show plots
-
-    Returns:
-        np.ndarray: A numpy array (dtype=object) where each row is [bins, counts].
-    """
-    if mode not in ("even", "odd"):
-        raise ValueError("mode must be either 'even' or 'odd'")
-
-    start_index = 0 if mode == "even" else 1
-    results = []
-
-    for i in range(start_index, len(matching_rows), 2):
-        filename = PATH + matching_rows[i, 0]
-        print(f"\nProcessing file: {filename}")
-
-        try:
-            timestamps = load_timestamps_from_file(filename)
-
-            # Sort timestamps for autocorrelation logic to work
-            timestamps = np.sort(timestamps)
-
-            # Use fast, memory-efficient version
-            bins, counts = start_stop_autocorr_histogram_numba(timestamps, B_width, M_Tau)
-
-            if SEE:
-                import matplotlib.pyplot as plt
-                plt.figure()
-                plt.bar(bins, counts, width=B_width, align="center")
-                plt.xlabel("Δt (ps)")
-                plt.ylabel("Counts")
-                plt.title(f"Histogram for file: {filename}")
-                plt.tight_layout()
-                plt.show()
-
-            results.append([bins, counts])
-
-        except Exception as e:
-            print(f"❌ Failed to process {filename}: {e}")
-
-    return np.array(results, dtype=object)
-
-
-
-match = find_eligible_files(result_array, -15)
-
-results = []
-results = process_matching_rows_by_mode(match, 1, 15300, mode="even", SEE = Visual)
-
-
-# %% Test on the data files to understand more...
-
-
-def inspect_bin_file(filename, clock_ps=15200, num_lines=15):
-    data = np.fromfile(filename, dtype=np.uint64)
-    
-    # Let's try to interpret it as pairs (start index, timestamp)
-    if data.size % 2 != 0:
-        print("⚠️ Warning: File doesn't contain an even number of entries. Might not be start-stop pairs.")
-    
-    reshaped = data[:2*num_lines].reshape(-1, 2)
-    
-    print(f"First {num_lines} entries in '{filename}':")
-    for i, (idx, timestamp) in enumerate(reshaped):
-        print(f"Line {i+1}: Index={idx}, Time={timestamp} → {timestamp * clock_ps} ps")
-        
-        
-        
-
-inspect_bin_file(PATH+match[1][0])
