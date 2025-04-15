@@ -63,9 +63,9 @@ PATH = Path("RAW/")
 folder_path = Path(PATH)
 file_list = [f.name for f in folder_path.iterdir() if f.is_file() and f.suffix == '.bin'] 
 
-# pulse_lengths = [-10, -10, -15, -15, -20, -20, -25, -25, -25, -25, -35, -35, -40, -40,-40, -40, -45, -45, -50, -50, -55, -55, 
-#                  -5, -5, -60, -60, -61, -61, -62, -62, -65, -65, -70, -70, -75, -75, -75, -75, -75, -75, -75, -76, -76, -77, -77, -80, -80, 0, 0, 0, 0]
-pulse_lengths = [-60, -60]
+pulse_lengths = [-10, -10, -15, -15, -20, -20, -25, -25, -25, -25, -35, -35, -40, -40,-40, -40, -45, -45, -50, -50, -55, -55, 
+                  -5, -5, -60, -60, -61, -61, -62, -62, -65, -65, -70, -70, -75, -75, -75, -75, -75, -75, -75, -76, -76, -77, -77, -80, -80, 0, 0, 0, 0]
+#pulse_lengths = [-60, -60]
 
 # Combine them into a 2D NumPy array (first column: filenames, second column: pulse lengths)
 result_array = np.array(list(zip(file_list, pulse_lengths)))
@@ -212,8 +212,6 @@ def hbt_histogram_from_file2(filename,
                             max_tau_ps=100000,
                             VIEW=False,
                             SHFT=0):
-    import matplotlib.pyplot as plt
-    import numpy as np
 
     print("filename:", filename)
 
@@ -249,7 +247,7 @@ def hbt_histogram_from_file2(filename,
     #     plt.tight_layout()
     #     plt.show()
         
-    return bins, counts
+    return bins, #counts
 
 
 def start_stop_histogram_from_file(filename, clock_ps=15200, bin_width_ps=1, max_tau_ps=15300, VIEW=False, SHFT=0):

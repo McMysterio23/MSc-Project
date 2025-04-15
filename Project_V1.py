@@ -215,6 +215,55 @@ def hbt_histogram_from_file2(filename,
     return bins, counts
 
 
+def hbt_histogram_from_file3(filename,
+                            clock_ps=15200,
+                            bin_width_ps=500,
+                            max_tau_ps=100000,
+                            VIEW=False,
+                            SHFT=0):
+    
+    """
+    Wolfgang Loeffler here helped so much !!
+    """
+    
+
+    print("filename:", filename)
+
+    data = np.fromfile(filename, dtype=np.uint64)
+    data = data.reshape(-1, 2)
+    print(filename)
+    # Convert index to picoseconds
+    # index_ps = data[:, 1] * clock_ps
+    # data = [] #WL erase stuff
+
+    # Filter by max_tau_ps (optional)
+    # delta_t_ps = delta_t_ps[delta_t_ps < max_tau_ps]
+
+    # Build histogram directly from the delay times
+    bins = np.arange(0, 12000, 12)
+    # counts, _ = np.histogram(data[:,0], bins=10, range=(0,12000))
+
+    plt.hist(data[:,0], bins=1000, range=(0,12000))
+    plt.xlim([4600,5000])
+    plt.show()
+
+    
+    # if VIEW:
+    #     plt.figure()
+    #     bin_centers = bins[:-1] + bin_width_ps / 2
+    #     plt.plot(bin_centers, counts, label="Histogram", color='blue')
+    #     plt.scatter(bin_centers, counts, s=3, color='darkorange', label="Data points")
+    #     plt.xlabel("Δt [ps]")
+    #     plt.ylabel("Counts")
+    #     plt.title(f"HBT Histogram (Start-Stop Δt) for pulse length {SHFT} ps")
+    #     plt.legend()
+    #     plt.grid(True)
+    #     plt.tight_layout()
+    #     plt.show()
+        
+    return bins, data[:, 0]
+
+
 def start_stop_histogram_from_file(filename, clock_ps=15200, bin_width_ps=1, max_tau_ps=15300, VIEW=False, SHFT=0):
     data = np.fromfile(filename, dtype=np.uint64)
     data = data.reshape(-1, 2)
@@ -395,7 +444,7 @@ def process_matching_rows(matching_rows, B_width, M_Tau, mode="even", SEE = Fals
         names = matching_rows[i, 0]
         pulse_length = int(matching_rows[i, 1])
 
-        bins, counts = hbt_histogram_from_file2(filename = PATH + names ,
+        bins, counts = hbt_histogram_from_file3(filename = PATH + names ,
                                                clock_ps=15200,
                                                bin_width_ps=B_width,
                                                max_tau_ps=M_Tau,
@@ -463,7 +512,7 @@ Visual= True
 #do_skew_gauss_fit(bins, counts)
 
 
-match = find_eligible_files(result_array, 0)
+match = find_eligible_files(result_array, -45)
 
 results = []
 results = process_matching_rows(match, 1000, 1530000, mode="odd", SEE = Visual)
