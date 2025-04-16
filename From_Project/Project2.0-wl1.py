@@ -32,7 +32,7 @@ from src.HBT_analysis import process_geetwo, calculate_photon_ratio_error, loren
 from src.photon_generator import LightGenerator, QuantumDot, Detector, BeamSplitter, DeadTime, multi_stream_wrapper, Delay
 from src.plot_utils import plotstream, arrival_distribution, statistics_test
 from src.HanburyBrownTwiss import g2_experiment, g2_tdc
-from src.utils import gaussian
+# from src.utils import gaussian
 
 
 
@@ -234,18 +234,18 @@ def hbt_histogram_from_file2(filename,
     plt.show()
 
     
-    # if VIEW:
-    #     plt.figure()
-    #     bin_centers = bins[:-1] + bin_width_ps / 2
-    #     plt.plot(bin_centers, counts, label="Histogram", color='blue')
-    #     plt.scatter(bin_centers, counts, s=3, color='darkorange', label="Data points")
-    #     plt.xlabel("Δt [ps]")
-    #     plt.ylabel("Counts")
-    #     plt.title(f"HBT Histogram (Start-Stop Δt) for pulse length {SHFT} ps")
-    #     plt.legend()
-    #     plt.grid(True)
-    #     plt.tight_layout()
-    #     plt.show()
+    if VIEW:
+        plt.figure()
+        bin_centers = bins[:-1] + bin_width_ps / 2
+        plt.plot(bin_centers, counts, label="Histogram", color='blue')
+        plt.scatter(bin_centers, counts, s=3, color='darkorange', label="Data points")
+        plt.xlabel("Δt [ps]")
+        plt.ylabel("Counts")
+        plt.title(f"HBT Histogram (Start-Stop Δt) for pulse length {SHFT} ps")
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
         
     return bins, #counts
 
@@ -303,48 +303,83 @@ def check_poisson_from_hist(counts):
         
         
 
-def gaussian(x, A, b, hwhm, d):
-    sigma = hwhm * 2 / (2*np.sqrt(2*np.log(2)))
-    return A*np.exp(-0.5*((x-d)/sigma)**2) + b
+# Gaussian function using FWHM
+def gaussian(x, A, b, fwhm, d):
+    sigma = fwhm / (2 * np.sqrt(2 * np.log(2)))
+    return A * np.exp(-0.5 * ((x - d) / sigma) ** 2) + b
 
+# Optional skewed gaussian if needed
 def skewed_gaussian(x, a, loc, scale, amplitude):
     return amplitude * skewnorm.pdf(x, a, loc, scale)
 
-
 def Do_Gauss_Fit(bins, counts):
     
+    """
+    This function will do a gaussian fit of an Histogram,
+    starting from an array corresponding to the result of 
+    a np.hist call and another array, called counts, that 
+    is just the populations of each array.
+    
+    
+    Suggested use : Right after using the function hbt_histogram_from_file2()
+    
     
     """
-    # Let's assume you've got bins and counts from your histogram
-    # from: bins, counts = hbt_histogram_from_file(...)
-    """
-    # Let's assume you've got bins and counts from your histogram
-    # from: bins, counts = hbt_histogram_from_file(...)
     
-    # Compute bin centers
     bin_centers = (bins[:-1] + bins[1:]) / 2
-    
-    # Guess some initial parameters [A, b, hwhm, d]
-    guess = [counts.max(), counts.min(), (bins[-1] - bins[0])/10, bin_centers[np.argmax(counts)]]
-    
-    # Fit the histogram to your gaussian model
-    popt, pcov = curve_fit(gaussian, bin_centers, counts, p0=guess)
-    
-    # Plot result
+
+    # Initial guess
+    A0 = counts.max() - counts.min()
+    b0 = counts.min()
+    fwhm0 = (bins[-1] - bins[0]) / 10
+    d0 = bin_centers[np.argmax(counts)]
+    guess = [A0, b0, abs(fwhm0), d0]
+
+    # Bounds
+    lower_bounds = [0, 0, 1e-3, bins[0]]
+    upper_bounds = [np.inf, np.inf, bins[-1] - bins[0], bins[-1]]
+
+    try:
+        popt, pcov = curve_fit(
+            gaussian, bin_centers, counts, p0=guess,
+            bounds=(lower_bounds, upper_bounds)
+        )
+    except RuntimeError as e:
+        print("Fit failed:", e)
+        return
+
+    # Unpack fitted params
+    A, b, fwhm, d = popt
+
+    # Compute uncertainties (1σ standard deviation)
+    perr = np.sqrt(np.diag(pcov))
+    A_err, b_err, fwhm_err, d_err = perr
+
+    # Plot
     plt.plot(bin_centers, counts, label='Histogram')
-    plt.plot(bin_centers, gaussian(bin_centers, *popt), label='Gaussian fit', linestyle='--')
+    plt.plot(bin_centers, gaussian(bin_centers, *popt), '--', label='Gaussian Fit')
+
+    eqn_str = (
+        f"$f(x) = A e^{{-0.5((x - d)/\\sigma)^2}} + b$\n"
+        f"$A$ = {A:.2f} ± {A_err:.2f}, $b$ = {b:.2f} ± {b_err:.2f}\n"
+        f"$\\mathrm{{FWHM}}$ = {fwhm:.2f} ± {fwhm_err:.2f} ps, $d$ = {d:.2f} ± {d_err:.2f} ps"
+    )
+
     plt.xlabel("Δt [ps]")
     plt.ylabel("Counts")
     plt.title("Gaussian Fit to Histogram")
-    plt.legend()
+    plt.legend(title=eqn_str, loc='upper right', fontsize='small')
+    plt.tight_layout()
     plt.show()
-    
-    # Print fitted parameters
-    print("Fitted parameters:")
-    print(f"Amplitude A: {popt[0]:.2f}")
-    print(f"Offset b: {popt[1]:.2f}")
-    print(f"HWHM: {popt[2]:.2f} ps")
-    print(f"Center d: {popt[3]:.2f} ps")
+
+    # Print with uncertainties
+    print("Fitted parameters (±1σ):")
+    print(f"Amplitude A     : {A:.2f} ± {A_err:.2f}")
+    print(f"Offset b        : {b:.2f} ± {b_err:.2f}")
+    print(f"FWHM            : {fwhm:.2f} ± {fwhm_err:.2f} ps")
+    print(f"Center d        : {d:.2f} ± {d_err:.2f} ps")
+
+
 
 def do_skew_gauss_fit(bins, counts):
     

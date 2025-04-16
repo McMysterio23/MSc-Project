@@ -10,6 +10,7 @@ Created on Wed Apr  2 15:28:59 2025
 # Importing libraries
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from numba import njit, prange
 from numba_progress import ProgressBar
 import numpy.typing as npt
@@ -17,11 +18,12 @@ from scipy.optimize import curve_fit
 from scipy.stats import skewnorm
 from pathlib import Path
 
+
 from src.HBT_analysis import process_geetwo, calculate_photon_ratio_error, lorentzian, make_fit
 from src.photon_generator import LightGenerator, QuantumDot, Detector, BeamSplitter, DeadTime, multi_stream_wrapper, Delay
 from src.plot_utils import plotstream, arrival_distribution, statistics_test
 from src.HanburyBrownTwiss import g2_experiment, g2_tdc
-from src.utils import gaussian
+# from src.utils import gaussian
 
 
 # %% FILE PATHS
@@ -317,48 +319,105 @@ def check_poisson_from_hist(counts):
         
         
 
-def gaussian(x, A, b, hwhm, d):
-    sigma = hwhm * 2 / (2*np.sqrt(2*np.log(2)))
-    return A*np.exp(-0.5*((x-d)/sigma)**2) + b
+# Gaussian function using FWHM
+def gaussian(x, A, b, fwhm, d):
+    sigma = fwhm / (2 * np.sqrt(2 * np.log(2)))
+    return A * np.exp(-0.5 * ((x - d) / sigma) ** 2) + b
 
+# Optional skewed gaussian if needed
 def skewed_gaussian(x, a, loc, scale, amplitude):
     return amplitude * skewnorm.pdf(x, a, loc, scale)
 
-
-def Do_Gauss_Fit(bins, counts):
+def Do_Gauss_Fit(bins, counts, PrintParams = False):
+    
+    """
+    This function will do a gaussian fit of an Histogram,
+    starting from an array corresponding to the result of 
+    a np.hist call and another array, called counts, that 
+    is just the populations of each array.
+    
+    If you want to print out the Pandas Data Frame of all the parameters of the fit, pass in also as third
+    argument a True valued variable !!!!!!!!!!
+    
+    
+    Suggested use : Right after using the function hbt_histogram_from_file2()
     
     
     """
-    # Let's assume you've got bins and counts from your histogram
-    # from: bins, counts = hbt_histogram_from_file(...)
-    """
-    # Let's assume you've got bins and counts from your histogram
-    # from: bins, counts = hbt_histogram_from_file(...)
     
-    # Compute bin centers
     bin_centers = (bins[:-1] + bins[1:]) / 2
-    
-    # Guess some initial parameters [A, b, hwhm, d]
-    guess = [counts.max(), counts.min(), (bins[-1] - bins[0])/10, bin_centers[np.argmax(counts)]]
-    
-    # Fit the histogram to your gaussian model
-    popt, pcov = curve_fit(gaussian, bin_centers, counts, p0=guess)
-    
-    # Plot result
+
+    # Initial guess
+    A0 = counts.max() - counts.min()
+    b0 = counts.min()
+    fwhm0 = (bins[-1] - bins[0]) / 10
+    d0 = bin_centers[np.argmax(counts)]
+    guess = [A0, b0, abs(fwhm0), d0]
+
+    # Bounds
+    lower_bounds = [0, 0, 1e-3, bins[0]]
+    upper_bounds = [np.inf, np.inf, bins[-1] - bins[0], bins[-1]]
+
+    try:
+        popt, pcov = curve_fit(
+            gaussian, bin_centers, counts, p0=guess,
+            bounds=(lower_bounds, upper_bounds)
+        )
+    except RuntimeError as e:
+        print("Fit failed:", e)
+        return
+
+    # Unpack fitted params
+    A, b, fwhm, d = popt
+
+    # Compute uncertainties (1σ standard deviation)
+    perr = np.sqrt(np.diag(pcov))
+    A_err, b_err, fwhm_err, d_err = perr
+
+    # Plot
     plt.plot(bin_centers, counts, label='Histogram')
-    plt.plot(bin_centers, gaussian(bin_centers, *popt), label='Gaussian fit', linestyle='--')
+    plt.plot(bin_centers, gaussian(bin_centers, *popt), '--', label='Gaussian Fit')
+
+    eqn_str = (
+        f"$f(x) = A e^{{-0.5((x - d)/\\sigma)^2}} + b$\n"
+        f"$A$ = {A:.2f} ± {A_err:.2f}, $b$ = {b:.2f} ± {b_err:.2f}\n"
+        f"$\\mathrm{{FWHM}}$ = {fwhm:.2f} ± {fwhm_err:.2f} ps, $d$ = {d:.2f} ± {d_err:.2f} ps"
+    )
+
     plt.xlabel("Δt [ps]")
     plt.ylabel("Counts")
     plt.title("Gaussian Fit to Histogram")
-    plt.legend()
+    plt.legend(title=eqn_str, loc='upper right', fontsize='small')
+    plt.tight_layout()
     plt.show()
+
+    # Print with uncertainties
+    print("Fitted parameters (±1σ):")
+    print(f"Amplitude A     : {A:.2f} ± {A_err:.2f}")
+    print(f"Offset b        : {b:.2f} ± {b_err:.2f}")
+    print(f"FWHM            : {fwhm:.2f} ± {fwhm_err:.2f} ps")
+    print(f"Center d        : {d:.2f} ± {d_err:.2f} ps")
     
-    # Print fitted parameters
-    print("Fitted parameters:")
-    print(f"Amplitude A: {popt[0]:.2f}")
-    print(f"Offset b: {popt[1]:.2f}")
-    print(f"HWHM: {popt[2]:.2f} ps")
-    print(f"Center d: {popt[3]:.2f} ps")
+    
+    
+    if (PrintParams):
+        
+        Names = ['A', 'b', 'FWHM', 'd']
+        df = pd.DataFrame({
+        'Parameter': Names,
+        'Value': popt,
+        'Uncertainty': perr
+        })
+        
+        
+        for i in range(4):
+            print(f"The value of {exit.loc[i, 'Parameter']} as computed from the fit appears to be {exit.loc[i, 'Value']:.2f} ± {exit.loc[i, 'Uncertainty']:.2f}")
+    
+        return df
+    
+        
+
+
 
 def do_skew_gauss_fit(bins, counts):
     
@@ -482,26 +541,26 @@ else:
 # %%Execution of the Mio's Version of the code
 
 
-coincidence_counts, taus = get_coincidence_counts_from_files(
-    "C:/Users/Maccarinelli/Desktop/RAW/EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-03-26T11_50_30.bin",
-    "C:/Users/Maccarinelli/Desktop/RAW/EOM_-15ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-03-26T11_54_37.bin",
-    stepsize_ps=4000,
-    maxtime_ps=100000
-)
+# coincidence_counts, taus = get_coincidence_counts_from_files(
+#     "C:/Users/Maccarinelli/Desktop/RAW/EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-03-26T11_50_30.bin",
+#     "C:/Users/Maccarinelli/Desktop/RAW/EOM_-15ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-03-26T11_54_37.bin",
+#     stepsize_ps=4000,
+#     maxtime_ps=100000
+# )
 
-plt.figure()  # <- This line ensures a new figure for each iteration
-plt.plot(taus, coincidence_counts)
-plt.xlabel("Δt [ps]")
-plt.ylabel("Counts")
-#plt.title(f"HBT Histogram (successive Δt) for pulse length {SHFT} ps")
-plt.show()
+# plt.figure()  # <- This line ensures a new figure for each iteration
+# plt.plot(taus, coincidence_counts)
+# plt.xlabel("Δt [ps]")
+# plt.ylabel("Counts")
+# #plt.title(f"HBT Histogram (successive Δt) for pulse length {SHFT} ps")
+# plt.show()
 
-#coincidence_counts, taus, chunktimes = get_coincidence_counts_from_files("C:\Users\Maccarinelli\Desktop\RAW_DATA\EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C2_2025-03-26T11_50_30.bin", "C:\Users\Maccarinelli\Desktop\RAW_DATA\EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-03-26T11_50_30.bin", stepsize_ps=1000, maxtime_ps=1000000000)
-
-
+# #coincidence_counts, taus, chunktimes = get_coincidence_counts_from_files("C:\Users\Maccarinelli\Desktop\RAW_DATA\EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C2_2025-03-26T11_50_30.bin", "C:\Users\Maccarinelli\Desktop\RAW_DATA\EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-03-26T11_50_30.bin", stepsize_ps=1000, maxtime_ps=1000000000)
 
 
-# %% FURTHER DEVELOPMENTS
+
+
+# %% FURTHER 
 Visual= True
 #Visual = False
 
@@ -512,10 +571,52 @@ Visual= True
 #do_skew_gauss_fit(bins, counts)
 
 
+# %% Further developments 
+
+Visual= True
+#Visual = False
+
 match = find_eligible_files(result_array, -45)
 
 results = []
 results = process_matching_rows(match, 1000, 1530000, mode="odd", SEE = Visual)
+
+
+
+
+# %% Sviluppi ?
+
+
+
+data = np.fromfile(filename, dtype=np.uint64)
+data = data.reshape(-1, 2)
+pippo = np.arange(0,12000,12)
+counts, _ = np.histogram(data[:,0], bins=pippo)
+exitParams = Do_Gauss_Fit(pippo, counts, True)
+
+
+# Normalize to get g2(tau)
+bin_centers = pippo[:-1] + 12 / 2
+baseline = np.mean(counts[(bin_centers > exitParams.loc[1,'Value'] * 12000)])  # adjust threshold if needed
+
+
+g2_tau = counts / baseline
+
+bin_centers = (pippo[:-1] + pippo[1:]) / 2
+threshold = 0.8 * bin_centers.max()
+mask = bin_centers > threshold
+print(f"Selected {mask.sum()} bins for baseline averaging.")
+baseline = np.mean(counts[mask])
+g2_tau = counts / baseline
+
+
+plt.plot(bin_centers, g2_tau, label='g₂(τ)')
+plt.xlabel('τ [ps]')
+plt.ylabel('g₂(τ)')
+plt.title('Normalized Second-Order Correlation')
+plt.grid(True)
+plt.legend()
+plt.show()
 
 
 # %%
@@ -560,9 +661,7 @@ def load_timestamps_from_file(filename):
 
 
 
-from numba import njit
-from numba_progress import ProgressBar
-import numpy as np
+
 
 from numba import njit, prange
 from numba_progress import ProgressBar
