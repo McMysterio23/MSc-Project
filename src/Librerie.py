@@ -114,3 +114,82 @@ def Do_Gauss_Fit(bins, counts, PrintParams = False, View = False):
             print(f"The value of {df.loc[i, 'Parameter']} as computed from the fit appears to be {df.loc[i, 'Value']:.2f} ± {df.loc[i, 'Uncertainty']:.2f}")
     
         return df
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+def peakfinder22(arr, thresh=None, distance_=1, plot=False):
+    """
+    Identifies positive peaks in a 1D array based on the first derivative.
+
+    Parameters:
+    - arr: Input array to search for peaks.
+    - thresh: Threshold multiplier for peak sensitivity (default: 2).
+    - distance_: Minimum spacing between detected peaks.
+    - plot: If True, plots intermediate steps for visualization.
+
+    Returns:
+    - Array of peak indices where the most significant peaks occur.
+    """
+    
+    # First derivative (rate of change)
+    diff_arr = np.diff(arr)
+    
+    # Find local maxima by checking where the first derivative changes from positive to negative
+    peak_candidates = np.argwhere((diff_arr[:-1] > 0) & (diff_arr[1:] < 0)).flatten() + 1  # Peaks are where the first derivative changes sign
+    
+    if thresh is not None:
+        # Apply threshold to peak candidates by considering only peaks with sufficient amplitude
+        peak_candidates = [i for i in peak_candidates if arr[i] > thresh]
+    
+    # Handle the case where no peaks are detected
+    if len(peak_candidates) == 0:
+        print("No peaks detected.")
+        return []
+
+    # Apply distance filtering (minimum spacing between peaks)
+    peak_idx = decluster_indices(arr, peak_candidates, distance=distance_)
+
+    # Plotting (optional)
+    if plot:
+        plt.plot(arr/arr.max())
+        plt.plot(peak_idx, arr[peak_idx]/arr.max(), 'ro')  # Red circles for detected peaks
+        plt.title("Detected Peaks")
+        plt.show()
+
+    return peak_idx
+
+def decluster_indices(array, idxs, distance=1):
+    """
+    Removes indices that are too close to each other, keeping only the most prominent peaks.
+
+    Parameters:
+    - array: The data array from which peaks are identified.
+    - idxs: List or array of peak indices to decluster.
+    - distance: The minimum distance (in terms of indices) that peaks should be apart.
+
+    Returns:
+    - Declustered list of peak indices.
+    """
+    if len(idxs) == 0:
+        return []
+
+    declustered = [idxs[0]]  # Keep the first peak
+
+    for idx in idxs[1:]:
+        # Compare the current peak to the last kept peak
+        if abs(idx - declustered[-1]) >= distance:
+            declustered.append(idx)  # Add it if it's far enough from the last peak
+
+    return np.array(declustered)
