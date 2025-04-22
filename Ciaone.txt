@@ -9,3 +9,11 @@ Ciaone 3 : Il PC dellúfficio inizia a lavorare !!
 Ciaone 4 : Modifiche recepite correttamente, siamo ONLINE !!!
 
 Ciaone 5 : Oggi il meeting è stato un disastro. Devo Resettare !
+
+
+
+
+
+Ciaone 6 : HO TROVATO LA FALLA NEL SISTEMA CHE MI FACEVA SPRECARE ENERGIE PER NULLA, SI GODE A MANETTAAAAAAAAAAAAAAAAAA! (SI QUESTO AGGIORNAMENTO È COLLEGATO AL COMMIT CON IL MESSAGGIO 'L'URLO DEL SIUUUMMMMM')
+
+
