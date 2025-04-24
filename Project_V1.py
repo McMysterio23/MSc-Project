@@ -550,13 +550,15 @@ coincidence_counts, taus = get_coincidence_counts_from_files(
 
 plt.figure()  # <- This line ensures a new figure for each iteration
 plt.plot(taus, coincidence_counts)
-plt.xlabel("Δt [ps]")
+plt.xlabel(r"$\Delta \tau$ [ps]")
 plt.ylabel("Counts")
 # plt.title(f"HBT Histogram (successive Δt) for pulse length {SHFT} ps")
 plt.show()
 
 # #coincidence_counts, taus, chunktimes = get_coincidence_counts_from_files("C:\Users\Maccarinelli\Desktop\RAW_DATA\EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C2_2025-03-26T11_50_30.bin", "C:\Users\Maccarinelli\Desktop\RAW_DATA\EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-03-26T11_50_30.bin", stepsize_ps=1000, maxtime_ps=1000000000)
 
+
+# %% LA Prepaazione della siummata !!!
 
 
 
