@@ -32,11 +32,11 @@ RAW_DATA_PATH_LAPTOP = "/Users/andreamaccarinelli/Desktop/LION/RAW_DATA/"
 
 
 # Specify the folder path where your raw data is stored
-folder_path = Path(RAW_DATA_PATH_OFFICE)
+# folder_path = Path(RAW_DATA_PATH_OFFICE)
+folder_path = Path(RAW_DATA_PATH_LAPTOP)
 file_list = [f.name for f in folder_path.iterdir() if f.is_file() and f.suffix == '.bin'] 
 
-pulse_lengths = [-10, -10, -15, -15, -20, -20, -25, -25, -25, -25, -35, -35, -40, -40,-40, -40, -45, -45, -50, -50, -55, -55, 
-                 -5, -5, -60, -60, -61, -61, -62, -62, -65, -65, -70, -70, -75, -75, -75, -75, -75, -75, -75, -76, -76, -77, -77, -80, -80, 0, 0, 0, 0]
+pulse_lengths = [-10, -10]
 
 # Combine them into a 2D NumPy array (first column: filenames, second column: pulse lengths)
 result_array = np.array(list(zip(file_list, pulse_lengths)))
@@ -527,8 +527,8 @@ FOR LOCATION == 0 ----> I AM CURRENTLY WORKING FROM HOME
 
 '''
 
-LOCATION = 1
-#LOCATION = 0
+# LOCATION = 1
+LOCATION = 0
 
 
 if (LOCATION==1):
@@ -540,22 +540,23 @@ else:
 
 # %%Execution of the Mio's Version of the code
 
+#Ora finalmente funzionaaaaaaaa !
 
-# coincidence_counts, taus = get_coincidence_counts_from_files(
-#     "C:/Users/Maccarinelli/Desktop/RAW/EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-03-26T11_50_30.bin",
-#     "C:/Users/Maccarinelli/Desktop/RAW/EOM_-15ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-03-26T11_54_37.bin",
-#     stepsize_ps=4000,
-#     maxtime_ps=100000
-# )
+coincidence_counts, taus = get_coincidence_counts_from_files(
+    PATH+file_list[1], PATH+file_list[0],
+    stepsize_ps=4000,
+    maxtime_ps=100000
+)
 
-# plt.figure()  # <- This line ensures a new figure for each iteration
-# plt.plot(taus, coincidence_counts)
-# plt.xlabel("Δt [ps]")
-# plt.ylabel("Counts")
-# #plt.title(f"HBT Histogram (successive Δt) for pulse length {SHFT} ps")
-# plt.show()
+plt.figure()  # <- This line ensures a new figure for each iteration
+plt.plot(taus, coincidence_counts)
+plt.xlabel("Δt [ps]")
+plt.ylabel("Counts")
+# plt.title(f"HBT Histogram (successive Δt) for pulse length {SHFT} ps")
+plt.show()
 
 # #coincidence_counts, taus, chunktimes = get_coincidence_counts_from_files("C:\Users\Maccarinelli\Desktop\RAW_DATA\EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C2_2025-03-26T11_50_30.bin", "C:\Users\Maccarinelli\Desktop\RAW_DATA\EOM_0ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-03-26T11_50_30.bin", stepsize_ps=1000, maxtime_ps=1000000000)
+
 
 
 
