@@ -113,7 +113,7 @@ def get_coincidence_counts_from_stream(stream1, stream2, max_difference, chunk_s
 
 def get_coincidence_counts_from_files(
         fname1,
-        fname2,
+        filename1,
         startstop_clock_ps = 15200,
         maxtime_ps =  int(0.001e12), # ps,
         stepsize_ps = 20000,
@@ -121,7 +121,7 @@ def get_coincidence_counts_from_files(
         ):
     
     tags1 = np.fromfile(fname1, dtype=np.uint64, sep="")
-    tags2 = np.fromfile(fname2, dtype=np.uint64, sep="")
+    tags2 = np.fromfile(filename1, dtype=np.uint64, sep="")
     
     shaped_tags1 = tags1.reshape((-1, 2))
     shaped_tags2 = tags2.reshape((-1, 2))
@@ -134,6 +134,40 @@ def get_coincidence_counts_from_files(
 
     del shaped_tags1, shaped_tags2
     return get_coincidence_counts_from_stream(timetags_ps1, timetags_ps2, maxtime_ps, chunk_size=chunk_size, step_size=stepsize_ps)
+
+
+def normalize(filename1, filename2, Counts_Coincident, acq_Time, startstop_clock_ps = 15200):
+    """
+    This function will act on the resulting objects of the function get_coincidence_counts_from_files() !!
+    Keep in mind that for the functioning process of this function you need also to have in hand the names of 
+    the files that you analised before !
+    
+    """
+    
+    tags1 = np.fromfile(filename1, dtype=np.uint64, sep="")
+    tags2 = np.fromfile(filename2, dtype=np.uint64, sep="")
+    
+    shaped_tags1 = tags1.reshape((-1, 2))
+    shaped_tags2 = tags2.reshape((-1, 2))
+    
+    shaped_tags1[::,1] *= startstop_clock_ps
+    shaped_tags2[::,1] *= startstop_clock_ps
+    
+    timetags_ps1 = shaped_tags1[:, 1]  # Extract only timestamps
+    timetags_ps2 = shaped_tags2[:, 1]   
+
+    del shaped_tags1, shaped_tags2
+    
+    # print(r'The length of the timetags array is f(len(timetags_ps1))f, f(len(timetags)')
+    
+    rate1 = len(timetags_ps1) / (acq_Time * 1e12)
+    rate2 = len(timetags_ps2) / (acq_Time * 1e12 )
+    
+    normalizedcounts = Counts_Coincident / (rate1 * rate2)
+    
+    return normalizedcounts
+    
+    
 
 # %% Main Part !
 
@@ -156,6 +190,14 @@ coincidence_counts, taus = get_coincidence_counts_from_files(
 
 plt.figure()  # <- This line ensures a new figure for each iteration
 plt.scatter(taus, coincidence_counts, s=0.8)
+plt.xlabel(r"$\Delta \tau$ [ps]")
+plt.ylabel("Counts")
+plt.show()
+
+Ncounts = normalize(fname_detector2, fname_detector3, coincidence_counts, 15)
+
+plt.figure()  # <- This line ensures a new figure for each iteration
+plt.scatter(taus, Ncounts, s=0.8)
 plt.xlabel(r"$\Delta \tau$ [ps]")
 plt.ylabel("Counts")
 plt.show()
