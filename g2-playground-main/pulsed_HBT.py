@@ -68,6 +68,7 @@ if __name__ == "__main__":
 
     # Plot g2
     plt.errorbar(tau, g2, fmt="-")#, yerr=e_g2s[i])
+    #plt.scatter(tau, g2, s=2)
     plt.ylim(0)
     plt.xlabel("$\\tau$ [ns]")
     plt.ylabel("g$^2(\\tau)$")
