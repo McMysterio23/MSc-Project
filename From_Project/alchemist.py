@@ -98,12 +98,7 @@ def get_coincidence_counts_from_stream(stream1, stream2, max_difference, chunk_s
     
     return coincidence_counts, bins
 
-# def get_coincidence_counts_from_stream(stream1, stream2, max_difference, chunk_size, step_size):
-#     with ProgressBar(total=int(np.ceil(stream1.size/chunk_size))+2) as pbar:
-#         coincidence_counts = sparse_coincidence_counts_jit(stream1.astype(np.int64), stream2.astype(np.int64), max_difference, chunk_size, step_size, pbar)
-#     bins=np.arange(-max_difference, max_difference + step_size, step_size)
-#     taus = (bins[:-1] + bins[1:]) / 2
-#     return coincidence_counts, taus
+
 
 def get_coincidence_counts_from_files(
         fname1,
@@ -125,34 +120,6 @@ def get_coincidence_counts_from_files(
     return get_coincidence_counts_from_stream(timetags_ps1, timetags_ps2, maxtime_ps, chunk_size=chunk_size, step_size=stepsize_ps)
 
 
-# def normalize(filename1, filename2, Counts_Coincident, acq_Time, startstop_clock_ps=15200, step_size_ps=1):
-#     """
-#     Normalizes the raw coincidence counts into g2(τ).
-#     """
-#     tags1 = np.fromfile(filename1, dtype=np.uint64, sep="")
-#     tags2 = np.fromfile(filename2, dtype=np.uint64, sep="")
-    
-#     shaped_tags1 = tags1.reshape((-1, 2))
-#     shaped_tags2 = tags2.reshape((-1, 2))
-    
-#     shaped_tags1[:, 1] *= startstop_clock_ps
-#     shaped_tags2[:, 1] *= startstop_clock_ps
-    
-#     timetags_ps1 = shaped_tags1[:, 1]
-#     timetags_ps2 = shaped_tags2[:, 1]
-    
-#     del shaped_tags1, shaped_tags2
-    
-#     # Photon rates [photons per second]
-#     rate1 = len(timetags_ps1) / acq_Time
-#     rate2 = len(timetags_ps2) / acq_Time
-
-#     # Expected random coincidences per bin
-#     expected_counts_per_bin = rate1 * rate2 * (step_size_ps * 1e-12) * acq_Time
-
-#     normalized_counts = Counts_Coincident / expected_counts_per_bin
-    
-#     return normalized_counts
 
 
 
@@ -204,7 +171,7 @@ def normalize(filename1, filename2, Counts_Coincident, acq_Time, startstop_clock
 
 STEP_ps = 4
 
-coincidence_counts, taus = get_coincidence_counts_from_files(fname_detector2, fname_detector3, stepsize_ps=STEP_ps, maxtime_ps=15000)
+coincidence_counts, taus = get_coincidence_counts_from_files(fname_detector2, fname_detector3, stepsize_ps=STEP_ps, maxtime_ps=1500000)
 
 print(f"current binsize : {STEP_ps}\n")
 
@@ -224,6 +191,9 @@ Ncounts = normalize(
     step_size_ps=STEP_ps  
 )
 
+
+# %% MAIN PLOTTING CELL FOR SECOND ORDER CORRELATION FUNCTIONS FROM THE COINCIDENCE HISTOGRAMS !!!!!!!!!!
+
 plt.figure()
 plt.title(f"Second Order Correlation Function for -10ps delay pulses and binsize {STEP_ps}ps")
 plt.plot(taus, Ncounts, linewidth=0.8, color='#FF9B00', label = 'Line')  
@@ -239,7 +209,57 @@ plt.yticks(fontsize=13)
 
 # Legend (if you want it)
 plt.legend(fontsize=14, loc='best', frameon=True)
-plt.xlim((10250, +10675))
+plt.xlim((10250, +55000))
 plt.ylim((-3, +150))
 plt.tight_layout()
 plt.show()
+
+
+
+
+
+
+
+# %% 2nd PART OF THE SCRIPT : IDENTIFY THE PEAKS IN THE g2 GENERAL PLOT 
+
+from src.Librerie import gaussian, skewed_gaussian, Do_Gauss_Fit, peakfinder22
+
+# If taus are bin centers, convert them to bin edges
+step_size = taus[1] - taus[0]  # Assuming uniform spacing
+taus_edges = np.concatenate(([taus[0] - step_size / 2], taus + step_size / 2))
+
+
+
+
+def Fitting_Intervals(First_Interval, Pulser_periodicity = 15200, maxtau = 1500000):
+    lim_left_zero, lim_right_zero = First_Interval
+    
+    ### Positive direction
+    Right_Borders = np.arange(lim_right_zero, 1.5e+06, Pulser_periodicity)
+    Left_Borders = np.arange(lim_left_zero, 1.5e+06, Pulser_periodicity)
+    
+    ### Negative direction
+    Left_Borders_Opp = np.arange(lim_left_zero - Pulser_periodicity, -1.5e+06, -Pulser_periodicity)
+    Right_Borders_Opp = np.arange(lim_right_zero - Pulser_periodicity, -1.5e+06, -Pulser_periodicity)
+    
+    # Reverse the negative direction arrays
+    Left_Borders_Opp_reversed = Left_Borders_Opp[::-1]
+    Right_Borders_Opp_reversed = Right_Borders_Opp[::-1]
+    
+    # Concatenate the positive and negative direction intervals
+    ALL_LEFT_BORDERS = np.concatenate([Left_Borders_Opp_reversed, Left_Borders])
+    ALL_RIGHT_BORDERS = np.concatenate([Right_Borders_Opp_reversed, Right_Borders])
+    
+    return ALL_LEFT_BORDERS, ALL_RIGHT_BORDERS
+    
+    
+    
+I_primo = (-5.39e+03, -3.81e+03)
+
+Fitting_Intervals(I_primo)
+
+
+
+
+
+
