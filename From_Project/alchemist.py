@@ -166,7 +166,12 @@ def normalize(filename1, filename2, Counts_Coincident, acq_Time, startstop_clock
     # Normalize counts
     normalized_counts = Counts_Coincident / expected_counts_per_bin
     
-    return normalized_counts
+    #compute the poissonian error related to each of these normalized counts 
+    # Calcola errore come shot noise
+    err_Ncounts = np.sqrt(Counts_Coincident) / expected_counts_per_bin
+
+    
+    return normalized_counts, err_Ncounts
 
 
 STEP_ps = 4
@@ -184,7 +189,7 @@ print(f"current binsize : {STEP_ps}\n")
 # plt.show()
 
 
-Ncounts = normalize(
+Ncounts, ErrNcounts = normalize(
     fname_detector2, fname_detector3,
     coincidence_counts,
     15,  
@@ -194,10 +199,34 @@ Ncounts = normalize(
 
 # %% MAIN PLOTTING CELL FOR SECOND ORDER CORRELATION FUNCTIONS FROM THE COINCIDENCE HISTOGRAMS !!!!!!!!!!
 
+# plt.figure()
+# plt.title(f"Second Order Correlation Function for -10ps delay pulses and binsize {STEP_ps}ps")
+# plt.plot(taus, Ncounts, linewidth=0.8, color='#FF9B00', label = 'Line')  
+# plt.scatter(taus, Ncounts, s=4, color='black', label = 'Data Points')
+
+# # Axis labels bigger
+# plt.xlabel(r"$\Delta \tau$ [ps]", fontsize=16)
+# plt.ylabel(r"$g_{2}(\tau)$", fontsize=16)
+
+# # Increase tick size
+# plt.xticks(fontsize=10)
+# plt.yticks(fontsize=13)
+
+# # Legend (if you want it)
+# plt.legend(fontsize=14, loc='best', frameon=True)
+# plt.xlim((10250, +55000))
+# plt.ylim((-3, +150))
+# plt.tight_layout()
+# plt.show()
+
+
+
 plt.figure()
 plt.title(f"Second Order Correlation Function for -10ps delay pulses and binsize {STEP_ps}ps")
-plt.plot(taus, Ncounts, linewidth=0.8, color='#FF9B00', label = 'Line')  
-plt.scatter(taus, Ncounts, s=4, color='black', label = 'Data Points')
+plt.plot(taus, Ncounts, linewidth=0.8, color='#FF9B00', label='Line')  
+
+# Aggiungi scatter plot con le barre di errore
+plt.errorbar(taus, Ncounts, yerr=ErrNcounts, fmt='o', color='black', label='Data Points', markersize=4, elinewidth=1, capsize=3)
 
 # Axis labels bigger
 plt.xlabel(r"$\Delta \tau$ [ps]", fontsize=16)
@@ -218,9 +247,7 @@ plt.show()
 
 
 
-
-
-# %% 2nd PART OF THE SCRIPT : IDENTIFY THE PEAKS IN THE g2 GENERAL PLOT 
+# %% 2nd PART OF THE SCRIPT : IDENTIFY THE FITTING INTERVALS
 
 from src.Librerie import gaussian, skewed_gaussian, Do_Gauss_Fit, peakfinder22
 
@@ -256,10 +283,120 @@ def Fitting_Intervals(First_Interval, Pulser_periodicity = 15200, maxtau = 15000
     
 I_primo = (-5.39e+03, -3.81e+03)
 
-Fitting_Intervals(I_primo)
+LEFT, RIGHT = Fitting_Intervals(I_primo)
+
+
+#VISUAL CHECK !!!
+
+# plt.figure()
+# plt.title(f"Second Order Correlation Function for -10ps delay pulses and binsize {STEP_ps}ps")
+# plt.plot(taus, Ncounts, linewidth=0.8, color='#FF9B00', label = 'Line')  
+# plt.scatter(taus, Ncounts, s=4, color='black', label = 'Data Points')
+
+# # Axis labels bigger
+# plt.xlabel(r"$\Delta \tau$ [ps]", fontsize=16)
+# plt.ylabel(r"$g_{2}(\tau)$", fontsize=16)
 
 
 
 
+# for i, j in zip(LEFT, RIGHT):
+#     plt.axvline(i, color='red', linestyle='--')   # linea tratteggiata per il bordo sinistro
+#     plt.axvline(j, color='red', linestyle='-')  # linea continua per il bordo destro
 
 
+# # Increase tick size
+# plt.xticks(fontsize=10)
+# plt.yticks(fontsize=13)
+
+# # Legend (if you want it)
+# plt.legend(fontsize=14, loc='best', frameon=True)
+# # plt.xlim((10250, +55000))
+# plt.xlim((-155000, 0))
+# plt.ylim((-3, +150))
+# plt.tight_layout()
+# plt.show()
+
+# %% 3RD PART OF THE SCRIPT : FIT FOR EACH INTERVAL AND SAVING THE PANDAS DATA FRAMES !
+
+from src.Librerie import Do_Gauss_Fit_v4
+
+results = []
+indice = 1
+
+for left, right in zip(LEFT, RIGHT):
+    selection_mask = (taus > left) & (taus < right)
+    Selection_Taus = taus[selection_mask]
+    Selected_Ncounts = Ncounts[selection_mask]
+    selected_errors = ErrNcounts[selection_mask]
+    
+    #ALCUNI ERRORI SONO ZERO E CAUSANO CASINI VEDERE ULTIMA CHAT DI GPT PER RISOLVERE
+    
+    
+    print(f"\n\n We are currently at the ({indice}-th) fit of this current file !")
+
+    print(f"left: {left}, right: {right}")
+    print(f"Selection_Taus shape: {Selection_Taus.shape}")
+    print(f"Selected_Ncounts shape: {Selected_Ncounts.shape}")
+
+    if Selection_Taus.shape[0] == Selected_Ncounts.shape[0] and Selection_Taus.shape[0] > 0:
+        results.append(Do_Gauss_Fit_v4(Selection_Taus, Selected_Ncounts, selected_errors, True))
+    else:
+        print("Warning: mismatch or empty selection, skipping this interval")
+        
+    
+    indice+=1
+    
+    
+# %% Analyzing the results obtained
+
+"""
+
+ONLY RUN THIS CELL AFTER PROCEDING TO RUN THE PREVIOUS ONE. OTHERWISE THE DATAFRAME ARRAY "results", WON'T BE READY TO BE OPEN !
+
+
+#HOW TO ACCESS THE RESULTING DATAFRAMES ?!?!?!?!?!?!?!?!    
+
+FOR A LOOK TO A SINGULAR DATAFRAME USE THE FOLLOWING COMMAND
+print(results[0])
+
+TO ACCESS A SPECIFIC ELEMENT OF A SPECIFIC ARRAY YOU HAVE TO KNOW 3 THINGS :
+    1 ) THE INDEX OF THE DATAFRAME YOU'RE INTERESTED IN;
+    2 ) THE STRING WITH THE NAME OF THE COLUMN YOU'RE INTERESTED IN'
+    3 ) THE INDEX OF ROW IN THE COLUMN YOU JUST SELECTED !!!
+    
+    
+THIS IS AN EXAMPLE OF A SINGLE DATAFRAME
+  Parameter         Value  Uncertainty
+0         A  1.359898e+02     0.201528
+1         b  3.301681e-01     0.032404
+2      FWHM  7.377636e+01     0.127867
+3         d -1.494368e+06     0.053264  
+
+THIS IS THE CALL REQUIRED TO ACCESS TO THE VALUE -1.494368e+06 
+results[0].loc["Value"][3]
+
+
+"""
+#HOW TO ACCESS THE DATAFRAMES ?!?!?!?!?!?!?!?!    
+
+
+
+
+centri = []
+for i in range(197):
+    centri.append(results[i].loc[3]["Value"])
+    
+    
+    
+FWHMs = []
+for i in range(197):
+    FWHMs.append(results[i].loc[2]["Value"])
+    
+    
+    
+
+plt.scatter(np.abs(centri), FWHMs, s=3)
+plt.xlabel('Absolute Taus [ps]')
+plt.ylabel('FWHMs [ps]')
+plt.show()
