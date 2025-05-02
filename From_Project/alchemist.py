@@ -238,7 +238,7 @@ plt.yticks(fontsize=13)
 
 # Legend (if you want it)
 plt.legend(fontsize=14, loc='best', frameon=True)
-plt.xlim((10250, +55000))
+plt.xlim((10250, +10650))
 plt.ylim((-3, +150))
 plt.tight_layout()
 plt.show()
@@ -324,28 +324,57 @@ from src.Librerie import Do_Gauss_Fit_v4
 results = []
 indice = 1
 
+# for left, right in zip(LEFT, RIGHT):
+#     selection_mask = (taus > left) & (taus < right)
+#     Selection_Taus = taus[selection_mask]
+#     Selected_Ncounts = Ncounts[selection_mask]
+#     selected_errors = ErrNcounts[selection_mask]
+    
+#     #ALCUNI ERRORI SONO ZERO E CAUSANO CASINI VEDERE ULTIMA CHAT DI GPT PER RISOLVERE
+    
+    
+#     print(f"\n\n We are currently at the ({indice}-th) fit of this current file !")
+
+#     print(f"left: {left}, right: {right}")
+#     print(f"Selection_Taus shape: {Selection_Taus.shape}")
+#     print(f"Selected_Ncounts shape: {Selected_Ncounts.shape}")
+
+#     if Selection_Taus.shape[0] == Selected_Ncounts.shape[0] and Selection_Taus.shape[0] > 0:
+#         results.append(Do_Gauss_Fit_v4(Selection_Taus, Selected_Ncounts, selected_errors, True))
+#     else:
+#         print("Warning: mismatch or empty selection, skipping this interval")
+        
+    
+#     indice+=1
+
+
 for left, right in zip(LEFT, RIGHT):
     selection_mask = (taus > left) & (taus < right)
     Selection_Taus = taus[selection_mask]
     Selected_Ncounts = Ncounts[selection_mask]
     selected_errors = ErrNcounts[selection_mask]
-    
-    #ALCUNI ERRORI SONO ZERO E CAUSANO CASINI VEDERE ULTIMA CHAT DI GPT PER RISOLVERE
-    
-    
-    print(f"\n\n We are currently at the ({indice}-th) fit of this current file !")
 
+    # Filtra errori non validi
+    valid_mask = (selected_errors > 0) & np.isfinite(selected_errors) & np.isfinite(Selected_Ncounts)
+    Selection_Taus = Selection_Taus[valid_mask]
+    Selected_Ncounts = Selected_Ncounts[valid_mask]
+    selected_errors = selected_errors[valid_mask]
+
+    print(f"\n\n We are currently at the ({indice}-th) fit of this current file !")
     print(f"left: {left}, right: {right}")
     print(f"Selection_Taus shape: {Selection_Taus.shape}")
     print(f"Selected_Ncounts shape: {Selected_Ncounts.shape}")
+    print(f"Selected_ErrNcounts shape: {selected_errors.shape}")
 
-    if Selection_Taus.shape[0] == Selected_Ncounts.shape[0] and Selection_Taus.shape[0] > 0:
-        results.append(Do_Gauss_Fit_v4(Selection_Taus, Selected_Ncounts, selected_errors, True))
+    if Selection_Taus.shape[0] == Selected_Ncounts.shape[0] == selected_errors.shape[0] and Selection_Taus.shape[0] > 0:
+        try:
+            results.append(Do_Gauss_Fit_v4(Selection_Taus, Selected_Ncounts, selected_errors, True))
+        except Exception as e:
+            print(f"Warning: fit failed at interval ({indice}) with error: {e}")
     else:
         print("Warning: mismatch or empty selection, skipping this interval")
-        
-    
-    indice+=1
+
+    indice +=1
     
     
 # %% Analyzing the results obtained
@@ -378,25 +407,62 @@ results[0].loc["Value"][3]
 
 
 """
-#HOW TO ACCESS THE DATAFRAMES ?!?!?!?!?!?!?!?!    
+
 
 
 
 
 centri = []
-for i in range(197):
+for i in range(len(results)):
     centri.append(results[i].loc[3]["Value"])
     
-    
-    
 FWHMs = []
-for i in range(197):
+for i in range(len(results)):
     FWHMs.append(results[i].loc[2]["Value"])
+    
+errFWHMs = []
+for i in range(len(results)):
+    errFWHMs.append(results[i].loc[2]["Uncertainty"])
+
+
     
     
     
 
-plt.scatter(np.abs(centri), FWHMs, s=3)
+plt.errorbar(np.abs(centri), FWHMs, yerr=errFWHMs, fmt='o', color='black', label='Data Points', markersize=2, elinewidth=1, capsize=1.5)
+# plt.scatter(np.abs(centri), FWHMs, s=3)
 plt.xlabel('Absolute Taus [ps]')
 plt.ylabel('FWHMs [ps]')
 plt.show()
+
+
+# %% The Research of the offset in the Tau axis to identify the actual \tau = 0 peak !!!!
+
+centers = []
+for i in range(len(results)):
+    # value = results[i].loc[3]["Value"]
+    # print(f"i={i}, type={type(value)}, value={value}")
+    centers.append(results[i].loc[3]["Value"])
+
+errCenters= []
+for i in range(len(results)):
+    errCenters.append(results[i].loc[3]["Uncertainty"])
+
+npcenters = np.array(centers)
+nperrors = np.array(errCenters)
+
+# Compute repetition rates & errors
+repetition_rates = npcenters[1:] - npcenters[:-1]
+repetition_errors = np.sqrt(nperrors[1:]**2 + nperrors[:-1]**2)
+
+# Compute weighted mean and uncertainty
+weights = 1 / repetition_errors**2
+weighted_mean = np.sum(repetition_rates * weights) / np.sum(weights)
+weighted_error = 1 / np.sqrt(np.sum(weights))
+
+print("Weighted repetition rate:", weighted_mean)
+print("Uncertainty:", weighted_error)
+
+# %% Actual Offset research !
+
+
