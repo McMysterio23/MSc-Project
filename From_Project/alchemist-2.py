@@ -316,7 +316,7 @@ LEFT, RIGHT = Fitting_Intervals(I_primo)
 # plt.tight_layout()
 # plt.show()
 
-# %% 3RD PART OF THE SCRIPT : FIT FOR EACH INTERVAL AND SAVING THE PANDAS DATA FRAMES !
+# %% 3RD PART OF THE SCRIPT : FIT FOR EACH INTERVAL, SAVING THE DATAFRAMES & SEARCH FOR MINIMUM
 
 from src.Librerie import Do_Gauss_Fit_v4
 
@@ -358,7 +358,111 @@ for left, right in zip(LEFT, RIGHT):
         print("Warning: mismatch or empty selection, skipping this interval")
 
     indice +=1
+
+centri = []
+for i in range(len(results)):
+    centri.append(results[i].loc[3]["Value"])
     
+FWHMs = []
+for i in range(len(results)):
+    FWHMs.append(results[i].loc[2]["Value"])
+    
+errFWHMs = []
+for i in range(len(results)):
+    errFWHMs.append(results[i].loc[2]["Uncertainty"])
+
+errCentri = []
+for i in range(len(results)):
+    errCentri.append(results[i].loc[3]["Uncertainty"])
+
+    
+    
+    
+
+# plt.errorbar(np.abs(centri), FWHMs, yerr=errFWHMs, fmt='o', color='black', label='Data Points', markersize=2, elinewidth=1, capsize=1.5, ecolor='red')
+plt.errorbar(centri, FWHMs, xerr = errCentri, yerr=errFWHMs, fmt='o', color='black', label='Data Points', markersize=2, elinewidth=1, capsize=1.5, ecolor='red')
+# plt.scatter(np.abs(centri), FWHMs, s=3)
+# plt.xlabel('Absolute Taus [ps]')
+plt.xlabel('Taus [ps]')
+
+plt.ylabel('FWHMs [ps]')
+plt.show()
+
+
+index_min = np.argmin(FWHMs)
+print(index_min)
+print(f"The peak with the minimum FWHM, is located in {centri[index_min]} [ps]")
+
+Offset = -centri[index_min]
+
+
+# %% # %% 4th PART OF THE SCRIPT : (Corrected) FIT FOR EACH INTERVAL AND SAVING THE PANDAS DATA FRAMES !
+
+from src.Librerie import Do_Gauss_Fit_v4
+
+#Correction of the taus array
+# taus = taus.astype(float)
+taus = taus-Offset
+
+#Correction of the boundary arrays
+LEFT += Offset
+RIGHT += Offset
+
+results = []
+indice = 1
+for left, right in zip(LEFT, RIGHT):
+    
+    #Correction of the taus array
+    taus += Offset
+    
+    #Creation of the mask
+    selection_mask = (taus > left) & (taus < right)
+    
+    #Restricting the arrays to the current interval being studied !
+    Selection_Taus = taus[selection_mask]
+    Selected_Ncounts = Ncounts[selection_mask]
+    selected_errors = ErrNcounts[selection_mask]
+
+    # Filter out non valid errors !!! (Avoiding errors that are NaN or Zero)
+    valid_mask = (selected_errors > 0) & np.isfinite(selected_errors) & np.isfinite(Selected_Ncounts)
+    Selection_Taus = Selection_Taus[valid_mask]
+    Selected_Ncounts = Selected_Ncounts[valid_mask]
+    selected_errors = selected_errors[valid_mask]
+
+
+    #DEBUGGING PRINTS
+    print(f"\n\n We are currently at the ({indice}-th) fit of this current file !")
+    print(f"left: {left}, right: {right}")
+    print(f"Selection_Taus shape: {Selection_Taus.shape}")
+    print(f"Selected_Ncounts shape: {Selected_Ncounts.shape}")
+    print(f"Selected_ErrNcounts shape: {selected_errors.shape}")
+
+
+    #FINAL CHECK BEFORE CALLING THE FIT FUNCTION
+    if Selection_Taus.shape[0] == Selected_Ncounts.shape[0] == selected_errors.shape[0] and Selection_Taus.shape[0] > 0:
+        try:
+            results.append(Do_Gauss_Fit_v4(Selection_Taus, Selected_Ncounts, selected_errors, True))
+        except Exception as e:
+            print(f"Warning: fit failed at interval ({indice}) with error: {e}")
+    else:
+        print("Warning: mismatch or empty selection, skipping this interval")
+
+    indice +=1
+    
+
+
+# %% Saving the pandas dataframes in a txt file 
+import os
+
+# # Create a folder if it doesn't exist
+# os.makedirs(PATH/"fit_results_-10psDelay_4psStepSize", exist_ok=True)
+
+output_dir = "fit_results_-10psDelay_4psStepSize"
+os.makedirs(output_dir, exist_ok=True)  # creates the folder if it doesn't exist
+
+# Now save
+for i, df in enumerate(results):
+    df.to_csv(f"{output_dir}/results_{i}.csv", index=False)
     
 # %% Analyzing the results obtained
 
@@ -452,6 +556,25 @@ weighted_error = 1 / np.sqrt(np.sum(weights))
 print("Weighted repetition rate:", weighted_mean)
 print("Uncertainty:", weighted_error)
 
-# %% Actual Offset research !
+# %% WL's requested plot !
+
+
+npcenters = np.array(centers)
+nperrors = np.array(errCenters)
+
+# Midpoints (x-axis)
+midpoints = (npcenters[1:] + npcenters[:-1]) / 2
+
+# Differences (y-axis)
+repetition_rates = npcenters[1:] - npcenters[:-1]
+repetition_errors = np.sqrt(nperrors[1:]**2 + nperrors[:-1]**2)
+
+plt.figure(figsize=(8, 5))
+plt.errorbar(midpoints, repetition_rates, yerr=repetition_errors, color = "black", fmt='.', ecolor='red', capsize=3)
+plt.xlabel('τ (ps) [midpoint between centers]')
+plt.ylabel('Δτ (ps) [difference between centers]')
+plt.title('Pulse Spacing vs τ')
+plt.grid(True)
+plt.show()
 
 
