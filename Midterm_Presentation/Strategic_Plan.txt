@@ -1,0 +1,35 @@
+Here in this Document you'll find the whole strategic plan about my midterm presentation, according also to what i saw from the other ones !!
+
+DATE OF THE PRESENTATION : 16TH MAY 2025 11:30AM
+Target Time for the whole presentation : 15 minutes
+
+
+Already with the current division of slides there is enough space to fill 17 minutes, if i avoid rushing the things.
+Keep in mind that i'll speak in English, not in Italian, so i have to prepare the speech also in order to have a slower pace than the one
+i'd have if i were to speak in my native language !!!
+
+
+Questions to answer during my presentation :
+
+Q1 : What is my project about ? 
+Q2 : Mathematical Tools that are useful to understand the Jitter ?
+Q3 : What is the experimental Setup ?
+	Q3_p2 : Procedure being implemented in my research ?
+Q4 : What is being currently studied ?
+Q5 : Discussion of the procedures currently implemented in the code and possible critical aspects that maybe need to be modified
+Q6 : Discussion of the current plots that i've in my possession.
+
+
+
+Answers to the Questions (State-of-the-art at the current date of 5-8-25)
+
+AnQ1 : The Purpose of my research project is to study the temporal Jitter of MIO's Experimental setup in order to find a way to boost the single photon indistinguishability in the HOM interference scheme.
+
+[... Needs to be extended...]
+
+AnQ3 : Currently the Experimental setup, comprises the following elements : A continuous wavelength laser, two subsequent EOMs that work together with a FPGA and a pulse compressor. The resulting laser beam, has some specific features,
+as result of these instruments (But currently the experimental setup has not already been studied to make a complete analysis towards the actual jitter contribution that appears as a result of all the different components that are included)
+
+After completing this procedure of creation of the pulses, that can be approximatedly seen as Gaussian Shaped, the laser is then divided into two subsequent Beam Splitters !
+The First Beam Splitter actually deviates part of the beam inside a power meter, that ensures a proper extimation of the power of the beam after the two EOMs.
+Furthermore the second one is the most important, specifically for the first part of the 
