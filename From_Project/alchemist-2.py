@@ -13,7 +13,7 @@ from pathlib import Path
 PATH = Path("RAW")
 folder_path = PATH
 file_list = [f.name for f in folder_path.iterdir() if f.is_file() and f.suffix == '.bin']
-names = [file_list[0], file_list[1], file_list[2], file_list[3]]
+names = [file_list[0], file_list[1], file_list[2], file_list[3], file_list[4], file_list[5], file_list[6], file_list[7]]
 
 fname_detector2 = PATH / names[0]
 fname_detector3 = PATH / names[1]
@@ -174,8 +174,9 @@ def normalize(filename1, filename2, Counts_Coincident, acq_Time, startstop_clock
 
 
 STEP_ps = 4
+MaxTauDistance = 3000000
 
-coincidence_counts, taus = get_coincidence_counts_from_files(fname_detector2, fname_detector3, stepsize_ps=STEP_ps, maxtime_ps=1500000)
+coincidence_counts, taus = get_coincidence_counts_from_files(fname_detector2, fname_detector3, stepsize_ps=STEP_ps, maxtime_ps=MaxTauDistance)
 
 print(f"current binsize : {STEP_ps}\n")
 
@@ -235,10 +236,14 @@ plt.ylabel(r"$g_{2}(\tau)$", fontsize=16)
 plt.xticks(fontsize=10)
 plt.yticks(fontsize=13)
 
+
+
+
+
 # Legend (if you want it)
 plt.legend(fontsize=14, loc='best', frameon=True)
-plt.xlim((10250, +10650))
-plt.ylim((-3, +150))
+plt.xlim((-4900, -4600))
+plt.ylim((-3, +220))
 plt.tight_layout()
 plt.show()
 
@@ -255,9 +260,9 @@ step_size = taus[1] - taus[0]  # Assuming uniform spacing
 taus_edges = np.concatenate(([taus[0] - step_size / 2], taus + step_size / 2))
 
 
+print(f"The maximum distance being considered for the generation of the intervals of fit is : {MaxTauDistance}")
 
-
-def Fitting_Intervals(First_Interval, Pulser_periodicity = 15200, maxtau = 1500000):
+def Fitting_Intervals(First_Interval, Pulser_periodicity = 15200, maxtau = MaxTauDistance):
     lim_left_zero, lim_right_zero = First_Interval
     
     ### Positive direction
@@ -280,41 +285,41 @@ def Fitting_Intervals(First_Interval, Pulser_periodicity = 15200, maxtau = 15000
     
     
     
-I_primo = (-5.39e+03, -3.81e+03)
+I_primo = (-4895, -4630)
 
 LEFT, RIGHT = Fitting_Intervals(I_primo)
 
 
 #VISUAL CHECK !!!
 
-# plt.figure()
-# plt.title(f"Second Order Correlation Function for -10ps delay pulses and binsize {STEP_ps}ps")
-# plt.plot(taus, Ncounts, linewidth=0.8, color='#FF9B00', label = 'Line')  
-# plt.scatter(taus, Ncounts, s=4, color='black', label = 'Data Points')
+plt.figure()
+plt.title(f"Second Order Correlation Function for -10ps delay pulses and binsize {STEP_ps}ps")
+plt.plot(taus, Ncounts, linewidth=0.8, color='#FF9B00', label = 'Line')  
+plt.scatter(taus, Ncounts, s=4, color='black', label = 'Data Points')
 
-# # Axis labels bigger
-# plt.xlabel(r"$\Delta \tau$ [ps]", fontsize=16)
-# plt.ylabel(r"$g_{2}(\tau)$", fontsize=16)
-
-
+# Axis labels bigger
+plt.xlabel(r"$\Delta \tau$ [ps]", fontsize=16)
+plt.ylabel(r"$g_{2}(\tau)$", fontsize=16)
 
 
-# for i, j in zip(LEFT, RIGHT):
-#     plt.axvline(i, color='red', linestyle='--')   # linea tratteggiata per il bordo sinistro
-#     plt.axvline(j, color='red', linestyle='-')  # linea continua per il bordo destro
 
 
-# # Increase tick size
-# plt.xticks(fontsize=10)
-# plt.yticks(fontsize=13)
+for i, j in zip(LEFT, RIGHT):
+    plt.axvline(i, color='red', linestyle='--')   # linea tratteggiata per il bordo sinistro
+    plt.axvline(j, color='red', linestyle='-')  # linea continua per il bordo destro
 
-# # Legend (if you want it)
-# # plt.legend(fontsize=14, loc='best', frameon=True)
-# # plt.xlim((10250, +55000))
-# plt.xlim((-155000, 0))
-# plt.ylim((-3, +150))
-# plt.tight_layout()
-# plt.show()
+
+# Increase tick size
+plt.xticks(fontsize=10)
+plt.yticks(fontsize=13)
+
+# Legend (if you want it)
+# plt.legend(fontsize=14, loc='best', frameon=True)
+# plt.xlim((10250, +55000))
+plt.xlim((-155000, 0))
+plt.ylim((-3, +150))
+plt.tight_layout()
+plt.show()
 
 # %% 3RD PART OF THE SCRIPT : FIT FOR EACH INTERVAL, SAVING THE DATAFRAMES & SEARCH FOR MINIMUM
 
@@ -379,41 +384,73 @@ for i in range(len(results)):
     
     
 
-# plt.errorbar(np.abs(centri), FWHMs, yerr=errFWHMs, fmt='o', color='black', label='Data Points', markersize=2, elinewidth=1, capsize=1.5, ecolor='red')
 plt.errorbar(centri, FWHMs, xerr = errCentri, yerr=errFWHMs, fmt='o', color='black', label='Data Points', markersize=2, elinewidth=1, capsize=1.5, ecolor='red')
-# plt.scatter(np.abs(centri), FWHMs, s=3)
-# plt.xlabel('Absolute Taus [ps]')
 plt.xlabel('Taus [ps]')
-
 plt.ylabel('FWHMs [ps]')
 plt.show()
 
 
 index_min = np.argmin(FWHMs)
-print(index_min)
-print(f"The peak with the minimum FWHM, is located in {centri[index_min]} [ps]")
+print(f"\n\nThe Index number in the array of the FWHMs where the array has its minimun is : {index_min}")
+print(f"\nThe peak with the minimum FWHM, which is {FWHMs[index_min]}[ps] is located in {centri[index_min]} [ps]")
 
 Offset = -centri[index_min]
+print(f"\nThe Offset that will be added to the tau axis is :{Offset} [ps]")
 
+# %% # %% 4th PART OF THE SCRIPT : Add the Offset to all relevant arrays
 
-# %% # %% 4th PART OF THE SCRIPT : (Corrected) FIT FOR EACH INTERVAL AND SAVING THE PANDAS DATA FRAMES !
+"""
+IMPORTANT !!!!!!!!!!!
+
+THIS CELL HAS TO BE EXECUTED ONLY ONCE, SINCE IT SHIFTS EVERY TIME THE ARRAYS.
+FOR THIS REASON YOU MAY WANT TO AVOID RUNNING SEVERAL TIMES THIS OPERATION !!!!
+"""
+
 
 from src.Librerie import Do_Gauss_Fit_v4
 
 #Correction of the taus array
-# taus = taus.astype(float)
-taus = taus-Offset
+taus = taus+Offset
 
 #Correction of the boundary arrays
-LEFT += Offset
-RIGHT += Offset
+LEFT = LEFT + Offset
+RIGHT = RIGHT + Offset
 
+# %% 5th part of the script : Visual check that the intervals' boundaries have correctly shifted !!
+plt.figure()
+plt.title(f"Second Order Correlation Function for -10ps delay pulses and binsize {STEP_ps}ps")
+plt.plot(taus, Ncounts, linewidth=0.8, color='#FF9B00', label='Line')  
+
+# Aggiungi scatter plot con le barre di errore
+plt.errorbar(taus, Ncounts, yerr=ErrNcounts, fmt='o', color='black', label='Data Points', markersize=4, elinewidth=1, capsize=3)
+
+# Axis labels bigger
+plt.xlabel(r"$\Delta \tau$ [ps]", fontsize=16)
+plt.ylabel(r"$g_{2}(\tau)$", fontsize=16)
+
+# Increase tick size
+plt.xticks(fontsize=10)
+plt.yticks(fontsize=13)
+
+
+for i, j in zip(LEFT, RIGHT):
+    plt.axvline(i, color='red', linestyle='--')   # Dashed red line for left boundaries
+    plt.axvline(j, color='red', linestyle='-')  # continuous red line for the right boundaries
+
+
+# Legend (if you want it)
+plt.legend(fontsize=14, loc='best', frameon=True)
+plt.xlim((-800, +1000))
+plt.ylim((-3, +180))
+plt.tight_layout()
+plt.show()
+
+
+# %% Final round of fits, this time in the correctly adjusted arrays after the shifts 
 results = []
 indice = 1
 for left, right in zip(LEFT, RIGHT):
     
-    #Correction of the taus array
-    taus += Offset
     
     #Creation of the mask
     selection_mask = (taus > left) & (taus < right)
@@ -451,14 +488,21 @@ for left, right in zip(LEFT, RIGHT):
     
 
 
+
 # %% Saving the pandas dataframes in a txt file 
 import os
 
 # # Create a folder if it doesn't exist
 # os.makedirs(PATH/"fit_results_-10psDelay_4psStepSize", exist_ok=True)
 
-output_dir = "fit_results_-10psDelay_4psStepSize"
+output_dir = f"fit_results_-50psDelay_{STEP_ps}psStepSize"
 os.makedirs(output_dir, exist_ok=True)  # creates the folder if it doesn't exist
+
+# Define the Figures subfolder path
+figures_dir = os.path.join(output_dir, "Images")
+
+# Create the Figures subfolder if it doesn't exist
+os.makedirs(figures_dir, exist_ok=True)
 
 # Now save
 for i, df in enumerate(results):
@@ -518,14 +562,18 @@ for i in range(len(results)):
     
     
     
-
-# plt.errorbar(np.abs(centri), FWHMs, yerr=errFWHMs, fmt='o', color='black', label='Data Points', markersize=2, elinewidth=1, capsize=1.5, ecolor='red')
+plt.figure(figsize=(10,6))
 plt.errorbar(centri, FWHMs, xerr = errCentri, yerr=errFWHMs, fmt='o', color='black', label='Data Points', markersize=2, elinewidth=1, capsize=1.5, ecolor='red')
-# plt.scatter(np.abs(centri), FWHMs, s=3)
-# plt.xlabel('Absolute Taus [ps]')
 plt.xlabel('Taus [ps]')
-
 plt.ylabel('FWHMs [ps]')
+plt.tight_layout()
+
+# Define the filename (standardized name inside the Figures folder)
+figure_filename = os.path.join(figures_dir, "FWHM_vs_Taus.png")
+
+# Save the figure
+plt.savefig(figure_filename, dpi=300)
+
 plt.show()
 
 
@@ -570,11 +618,34 @@ repetition_rates = npcenters[1:] - npcenters[:-1]
 repetition_errors = np.sqrt(nperrors[1:]**2 + nperrors[:-1]**2)
 
 plt.figure(figsize=(8, 5))
-plt.errorbar(midpoints, repetition_rates, yerr=repetition_errors, color = "black", fmt='.', ecolor='red', capsize=3)
-plt.xlabel('τ (ps) [midpoint between centers]')
-plt.ylabel('Δτ (ps) [difference between centers]')
-plt.title('Pulse Spacing vs τ')
+plt.errorbar(npcenters[:-1], repetition_rates, yerr=repetition_errors, color="black", fmt='.', ecolor='red', capsize=3)
+plt.xlabel(r'$\tau$ (ps) [first center of each pair]')
+plt.ylabel(r'$\Delta \tau$ (ps) [difference between centers]')
+plt.title('Pulse Spacing vs τ (anchored to first center)')
 plt.grid(True)
+plt.tight_layout()
+
+# Define the filename (standardized name inside the Figures folder)
+figure_filename = os.path.join(figures_dir, "PulseSpacing_vs_FirstCenter_Overall.png")
+
+# Save the figure
+plt.savefig(figure_filename, dpi=300)
 plt.show()
 
+
+plt.figure(figsize=(8, 5))
+plt.errorbar(npcenters[:-1], repetition_rates, yerr=repetition_errors, color="black", fmt='.', ecolor='red', capsize=3)
+plt.xlim((-250000, +250000))
+plt.xlabel(r'$\tau$ (ps) [first center of each pair]')
+plt.ylabel(r'$\Delta \tau$ (ps) [difference between centers]')
+plt.title('Pulse Spacing vs τ (anchored to first center)')
+plt.grid(True)
+plt.tight_layout()
+
+# Define the filename (standardized name inside the Figures folder)
+figure_filename = os.path.join(figures_dir, "PulseSpacing_vs_FirstCenter_Zoom1.png")
+
+# Save the figure
+plt.savefig(figure_filename, dpi=300)
+plt.show()
 
