@@ -10,6 +10,9 @@ from numba_progress import ProgressBar
 import numpy.typing as npt
 from pathlib import Path
 
+
+
+# %% 1st part of the script !!!!!!!!!!!
 PATH = Path("RAW")
 folder_path = PATH
 file_list = [f.name for f in folder_path.iterdir() if f.is_file() and f.suffix == '.bin']
@@ -648,4 +651,178 @@ figure_filename = os.path.join(figures_dir, "PulseSpacing_vs_FirstCenter_Zoom1.p
 # Save the figure
 plt.savefig(figure_filename, dpi=300)
 plt.show()
+
+
+# %% Opening the CSV files from the fits !!!!
+import pandas as pd
+import os
+import re
+
+folder_path0 = 'fit_results_-10psDelay_4psStepSize'
+folder_path1 = 'fit_results_-10ps_V2_Delay_4psStepSize'
+folder_path2 = 'fit_results_-25psDelay_4psStepSize'
+folder_path3 = 'fit_results_-50psDelay_5psStepSize'
+
+FolPATHS = [folder_path0, folder_path1, folder_path2, folder_path3]
+
+
+def file_extractor(folder_path):
+    files = [f for f in os.listdir(folder_path) if f.endswith('.csv')]
+    files_sorted = sorted(files, key=lambda x: int(re.findall(r'\d+', x)[0]))
+
+    results = []
+    for file in files_sorted:
+        df = pd.read_csv(os.path.join(folder_path, file))
+        results.append(df)
+        
+    return results
+
+
+# Store the results in a dictionary
+all_results = {}
+
+for i, folder_path in enumerate(FolPATHS):
+    results = file_extractor(folder_path)
+    all_results[f"results_{i}"] = results
+
+# %% Extract from the pandas dataframes contained in results the needed arrays
+
+# Initialize dictionaries to store the results for each folder
+centri_all = {}
+FWHMs_all = {}
+errFWHMs_all = {}
+errCentri_all = {}
+
+for key, results_list in all_results.items():
+    centri = []
+    FWHMs = []
+    errFWHMs = []
+    errCentri = []
+    
+    for df in results_list:
+        centri.append(df.loc[3, "Value"])
+        FWHMs.append(df.loc[2, "Value"])
+        errFWHMs.append(df.loc[2, "Uncertainty"])
+        errCentri.append(df.loc[3, "Uncertainty"])
+    
+    # Save each list in its respective dictionary
+    centri_all[key] = centri
+    FWHMs_all[key] = FWHMs
+    errFWHMs_all[key] = errFWHMs
+    errCentri_all[key] = errCentri
+
+for key in FWHMs_all.keys():
+    FWHMs = np.array(FWHMs_all[key])
+    centri = np.array(centri_all[key])
+    
+    index_min = np.argmin(FWHMs)
+    print(f"\n\n[ {key} ]")
+    print(f"The index of the minimum FWHM is: {index_min}")
+    print(f"The peak with the minimum FWHM ({FWHMs[index_min]} ps) is located at {centri[index_min]} ps")
+
+
+
+# %% Plot of the FWHMs differences with the central peak, versus the number of periods of difference...
+
+errFWHMs = np.array(errFWHMs)  # convert list to NumPy array
+
+
+
+# Reference peak (tau = 0)
+FWHM_ref = FWHMs[index_min]
+err_ref = errFWHMs[index_min]
+
+# Compute differences with respect to tau = 0 peak
+diffs = FWHMs - FWHM_ref
+errors = np.sqrt(errFWHMs**2 + err_ref**2)
+
+# Optionally exclude the tau=0 peak itself from the plot (diff=0)
+mask = np.arange(len(FWHMs)) != index_min
+
+# Compute the period offsets (e.g., -5, -4, ..., 0, +1, +2, ...)
+period_offsets = np.arange(len(centri)) - index_min
+
+# Apply the same mask you already have
+period_offsets_relative = period_offsets[mask]
+diffs_relative = diffs[mask]
+errors_relative = errors[mask]
+
+# Plot
+plt.figure(figsize=(8,5))
+plt.errorbar(period_offsets_relative, diffs_relative, yerr=errors_relative, fmt='.', color='black', capsize=2, ecolor = 'grey')
+plt.axhline(0, color='gray', linestyle='--')
+plt.xlabel('Periods of Distance from τ=0')
+plt.ylabel('ΔFWHM relative to τ=0 (ps)')
+plt.title('Peak Width Deviation vs Period Distance')
+plt.grid(True)
+plt.show()
+
+
+
+
+# %% General Plotting !!!
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Define color and label mapping for each dataset
+plot_styles = {
+    'results_0': {'color': 'black', 'label': '-10ps'},
+    'results_1': {'color': 'blue', 'label': '-10ps V2'},
+    'results_2': {'color': 'red', 'label': '-25ps'},
+    'results_3': {'color': 'green', 'label': '-50ps'}
+}
+
+plt.figure(figsize=(10, 6))
+
+# Loop over each dataset
+for key in all_results.keys():
+    centri = np.array(centri_all[key])
+    FWHMs = np.array(FWHMs_all[key])
+    errFWHMs = np.array(errFWHMs_all[key])
+
+    # Find the index of the minimum FWHM (tau=0 peak)
+    index_min = np.argmin(FWHMs)
+    FWHM_ref = FWHMs[index_min]
+    err_ref = errFWHMs[index_min]
+
+    # Compute differences and uncertainties
+    diffs = FWHMs - FWHM_ref
+    errors = np.sqrt(errFWHMs**2 + err_ref**2)
+
+    # Exclude the tau=0 peak itself
+    mask = np.arange(len(FWHMs)) != index_min
+
+    # Compute period offsets relative to tau=0
+    period_offsets = np.arange(len(centri)) - index_min
+
+    # Apply mask
+    period_offsets_relative = period_offsets[mask]
+    diffs_relative = diffs[mask]
+    errors_relative = errors[mask]
+
+    # Get color and label
+    style = plot_styles[key]
+
+    # Plot with error bars
+    plt.errorbar(
+        period_offsets_relative,
+        diffs_relative,
+        yerr=errors_relative,
+        fmt='.',
+        color=style['color'],
+        ecolor='grey',
+        capsize=2,
+        label=style['label']
+    )
+
+# Decorations
+plt.axhline(0, color='gray', linestyle='--')
+plt.xlabel('Periods of Distance from τ=0')
+plt.ylabel('ΔFWHM relative to τ=0 (ps)')
+plt.title('Peak Width Deviation vs Period Distance')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
 
