@@ -32,4 +32,65 @@ as result of these instruments (But currently the experimental setup has not alr
 
 After completing this procedure of creation of the pulses, that can be approximatedly seen as Gaussian Shaped, the laser is then divided into two subsequent Beam Splitters !
 The First Beam Splitter actually deviates part of the beam inside a power meter, that ensures a proper extimation of the power of the beam after the two EOMs.
-Furthermore the second one is the most important, specifically for the first part of the 
+Furthermore the second one is the most important, specifically for the first part of the whole first part of the project since to inquire what is actually the jitter of the first part of the setup, that one without the excitation of the quantum dot, what we chose
+to implement is an Hanbury-Brown-Twiss Experiment, using exactly the laser that will later excite the quantum dot.
+
+AnQ3_p2 : To study the temporal jitter of the whole experimental setup we divided the project into two main parts : The production and refinement of the Laser Excitation pulses, and its part of study;	How this temporal Jitter then affects the single photon
+Indistinguishability, and how can we work to improve the quantum features of the single photon light we produce after the quantum dot excitation!
+
+AnQ4 : Currently i'm still analyzing the 1st part of the experimental setup, analyzing the results of the Start/Stop measurements from the HBT experiment on the excitation pulses.
+This procedure is being carried out using an SNSPD to detect the optical pulses we get after the second beam splitter that creates the conditions to do an Hanbury Brown Twiss experiment.
+The clicks of the SNSPD, in the KEY HYPOTHESES THAT FOR EACH PULSE WE CAN GET NO MORE THAN 1 CLICK, are then put into relation with the SYNC impulses from the FPGA that drives the repetition period of the pulses.
+This is the moment in which the time controller instrument, realizes the Start/Stop experiment, by measuring the time that passes between the departure of the pulse, represented by the arrival on the snspd of a click that comes directly from the FPGA, 
+and the following click by one specific detector. The system than saves the files in a .bin format style file, in which the first column is actually made of indeces, and the second one of timestamps.
+These two elements represent a key combination to retrieve the real time in which each one of these clicks actually happened. 
+By multiplying the timestamp for the value on the same row but in the first column, and again for the repetition period of the pulser, what we'll retrieve is the actual time in whick the click has happened, without any relative reference.
+This procedure is done symultaneously for both the detectors, finally leading to the creation of the streams of the clicks of the two detectors.
+
+Later on all the procedures are developed on behalf of these two streams, starting from the creation of the so-called coincidences Hystograms, result of the correlation of the two streams within a predetermined maximum distance between the two events !
+
+Eventually, this hystogram is normalized using key informations like the total acquisition time, the rates of acquisition of the two detectors, and the binsize used to create the Histogram coincidences. 
+This procedure will lead to the g2(\tau) second order correlation function.
+This is the starting point for the analysis of the jitter in the first part of the setup.
+
+In the Lab, i've take these measurements for 15seconds integration time, and varying the pulse delay setted in the pulse compressor, in order to study the behaviour of differently shaped pulses. ( the smaller the pulse delay added by the pulse compressor gets, 
+the shorter these pulses become)
+
+
+AnQ5 : Currently the code implements the following operations :
+
+1 ) CREATION OF THE COINCIDENCES HISTOGRAM
+Starting from the extraction of the two matrices in the .bin files, in this first part of the script, the code extracts the two streams of clicks coming from the two detectors, to then analyze them using a sparse matrix algorithm to eventually find the
+coincidendes within a maximum amount of time as set in the beginning. After these operations, Coincidences are visualized in a proper Histograms, through the display of two key arrays called Counts and Taus.
+
+2 ) CREATION OF THE PLOT (W/ DATAPOINTS) OF THE SECOND ORDER CORRELATION FUNCTION
+These two objects are then fed into a normalizing function that, proceeds to normalize the counts, using some additional data in order to achieve a plot of the second order correlation function g2(\tau).
+
+Important to notice is that at this point i still don't know the actual position of the peak at DTau = 0, since the source of light being used at this point is still pulsed light in a sort of way, so there will not be any antibunching effect on this peak,
+it has to be recognized in a different way.
+
+3 ) DIVISION OF THE X-AXIS INTO FITTING INTERVALS, WITH THE FOLLOWING AUTOMATED FITTING PROCEDURE.
+Using the well known repetition period of the FPGA, namely of 15.2ns, i developed a proper way to divide the tau axis into intervals in which, according to the periodic nature of the g2 peaks that perfectly reflects the period of the laser pulses.
+This will lead to (Add picture), to the division of the whole set into intervals that are then used to select data from the arrays and then proceed to the fits.
+
+The Fit runtime procedure is being carried out using the function curve_fit() from the scipy library "Optimize" with a gaussian function, while the chi-square and reduced chi squares, for each fit are computed independently.
+At this point the code saves inside of an array, all the Pandas Dataframes, with the parameters from the fits and where possible also their uncertainties as computed from the covariance matrix.
+
+4 ) IDENTIFICATION OF THE TAU-ZERO PEAK
+After several plots of the FWHMs over the positions of the centers of the fitted gaussians, i had the intuition that actually i could retrieve the central peak of the g2(\tau) function by sorting out the peak with the minimum FWHM.
+If initially it appeared a bit strong as a way to identify the tau zero, it then started to make more sense when i observed that the actual coordinate of this peak was approximately always in a same range of values, and always near the computationally obtained
+zero values. 
+
+After the previous considerations, and due to consistent results throughout different pulse lengths, it became apparent that i needed to reshift all taus from that value in order to delete the optical delay between the two different pulses and retrieve the position
+of the central peak in its designed position at the origin of the axis.
+
+5 ) FIT AGAIN ON THE CORRECTED ARRAYS
+After reshifting arrays and boundaries of the fitting intervals i proceed to fit again all the peaks, like before and finally saving the array of Dataframes inside CommaSeparatedValues files.
+
+6 ) PLOT 1 : FWHM OVER CENTERS
+Displays the positions of the FWHMs of the gaussians fitted over the positions of the centers according to the fits parameters !!!
+
+7 ) PLOT 2 : Displays the values of the 
+
+
+

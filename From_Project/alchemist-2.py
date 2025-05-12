@@ -9,7 +9,7 @@ from numba import njit, prange
 from numba_progress import ProgressBar
 import numpy.typing as npt
 from pathlib import Path
-
+from matplotlib.ticker import EngFormatter
 
 
 # %% 1st part of the script !!!!!!!!!!!
@@ -396,7 +396,7 @@ plt.show()
 index_min = np.argmin(FWHMs)
 print(f"\n\nThe Index number in the array of the FWHMs where the array has its minimun is : {index_min}")
 print(f"\nThe peak with the minimum FWHM, which is {FWHMs[index_min]}[ps] is located in {centri[index_min]} [ps]")
-
+        
 Offset = -centri[index_min]
 print(f"\nThe Offset that will be added to the tau axis is :{Offset} [ps]")
 
@@ -819,10 +819,102 @@ for key in all_results.keys():
 plt.axhline(0, color='gray', linestyle='--')
 plt.xlabel('Periods of Distance from τ=0')
 plt.ylabel('ΔFWHM relative to τ=0 (ps)')
-plt.title('Peak Width Deviation vs Period Distance')
+plt.title(r'$g_{2}(\tau)$ Peak Width Deviation vs Period Distance')
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
 plt.show()
 
+
+
+plt.figure(figsize=(10, 6))
+
+# Loop over each dataset
+for key in all_results.keys():
+    centri = np.array(centri_all[key])
+    FWHMs = np.array(FWHMs_all[key])
+    errFWHMs = np.array(errFWHMs_all[key])
+    errCentri = np.array(errCentri_all[key])
+
+    ncentri = centri/ 1e6
+    nerrcentri = errCentri / 1e6
+
+    style = plot_styles[key]
+
+    # Plot FWHM vs Center Position with error bars
+    plt.errorbar(
+        ncentri, FWHMs,
+        xerr=nerrcentri,
+        yerr=errFWHMs,
+        fmt='.',
+        color=style['color'],
+        ecolor='grey',
+        capsize=2,
+        label=style['label']
+    )
+
+# Decorations
+plt.xlabel('Peak Center Position τ (ps)')
+plt.ylabel('FWHM (ps)')
+plt.title(r'$g_{2}(\tau)$FWHM vs Peak Center Position')
+plt.legend()
+ax = plt.gca()
+ax.xaxis.set_major_formatter(EngFormatter(unit='$\mu s$'))
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+# %% General WL requested NOT  ZOOMED IN !!!
+
+
+
+# Use same style mapping as before
+plot_styles = {
+    'results_0': {'color': 'black', 'label': '-10ps'},
+    'results_1': {'color': 'blue', 'label': '-10ps V2'},
+    'results_2': {'color': 'red', 'label': '-25ps'},
+    'results_3': {'color': 'green', 'label': '-50ps'}
+}
+
+plt.figure(figsize=(10, 6))
+
+for key in centri_all.keys():
+    centers = np.array(centri_all[key])
+    errors = np.array(errCentri_all[key])
+    
+    # Compute midpoints and repetition rates
+    midpoints = centers[:-1]
+    repetition_rates = centers[1:] - centers[:-1]
+    repetition_errors = np.sqrt(errors[1:]**2 + errors[:-1]**2)
+    
+    style = plot_styles[key]
+    
+    #Conversion to better units
+    nmidpoints = midpoints / 1e6
+    conv_repetitionRates = repetition_rates / 1e3
+    conv_yerr = repetition_errors / 1e3
+    
+    plt.errorbar(
+        nmidpoints, 
+        conv_repetitionRates, 
+        yerr=conv_yerr, 
+        fmt='.', 
+        color=style['color'], 
+        ecolor='grey', 
+        capsize=3, 
+        label=style['label']
+    )
+
+# Plot settings
+plt.xlabel(r'$\tau$ (ps) [first center of each pair]')
+plt.ylabel(r'$\Delta \tau$ (ps) [difference between centers]')
+plt.title('Pulse Spacing vs τ (anchored to first center)')
+ax = plt.gca()
+ax.xaxis.set_major_formatter(EngFormatter(unit='$\mu s$'))
+ay = plt.gca()
+ay.yaxis.set_major_formatter(EngFormatter(unit='ns'))
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.show()
 
