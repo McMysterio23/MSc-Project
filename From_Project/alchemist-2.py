@@ -16,10 +16,46 @@ from matplotlib.ticker import EngFormatter
 PATH = Path("RAW")
 folder_path = PATH
 file_list = [f.name for f in folder_path.iterdir() if f.is_file() and f.suffix == '.bin']
-names = [file_list[0], file_list[1], file_list[2], file_list[3], file_list[4], file_list[5], file_list[6], file_list[7]]
+names = [file_list[0], file_list[1], file_list[2], file_list[3], file_list[4], file_list[5], file_list[6], file_list[7],
+         file_list[8], file_list[9]]
 
-fname_detector2 = PATH / names[0]
-fname_detector3 = PATH / names[1]
+"""
+At the moment there is in the data folder this set of files:
+    
+    EOM_-10v2ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C2_2025-04-23T15_23_17.bin
+
+
+    EOM_-10v2ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-04-23T15_23_17.bin
+
+
+    EOM_-25ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C2_2025-04-23T15_38_45.bin
+
+
+    EOM_-25ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-04-23T15_38_45.bin
+
+
+    EOM_-35ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C2_2025-04-23T15_47_05.bin
+
+
+    EOM_-35ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-04-23T15_47_05.bin
+
+
+    EOM_-50ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C2_2025-04-23T16_12_47.bin
+
+
+    EOM_-50ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-04-23T16_12_47.bin
+
+
+    EOM_-60ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C2_2025-04-23T16_33_20.bin
+
+
+    EOM_-60ps_pulse_length_HBT_and_StartStop-15.200ns_reptime_C3_2025-04-23T16_33_20.bin
+"""
+
+
+
+fname_detector2 = PATH / names[8]
+fname_detector3 = PATH / names[9]
 
 @njit
 def sparse_difference_matrix(stream1, stream2, max_difference, j_start=0):
@@ -176,10 +212,10 @@ def normalize(filename1, filename2, Counts_Coincident, acq_Time, startstop_clock
     return normalized_counts, err_Ncounts
 
 
-STEP_ps = 4
+STEP_ps = 14
 MaxTauDistance = 3000000
 
-coincidence_counts, taus = get_coincidence_counts_from_files(fname_detector2, fname_detector3, stepsize_ps=STEP_ps, maxtime_ps=MaxTauDistance)
+coincidence_counts, taus = get_coincidence_counts_from_files(fname_detector2, fname_detector3, stepsize_ps=STEP_ps, maxtime_ps=MaxTauDistance, chunk_size=15000)
 
 print(f"current binsize : {STEP_ps}\n")
 
@@ -202,25 +238,25 @@ Ncounts, ErrNcounts = normalize(
 
 # %% MAIN PLOTTING CELL FOR SECOND ORDER CORRELATION FUNCTIONS FROM THE COINCIDENCE HISTOGRAMS !!!!!!!!!!
 
-# plt.figure()
-# plt.title(f"Second Order Correlation Function for -10ps delay pulses and binsize {STEP_ps}ps")
-# plt.plot(taus, Ncounts, linewidth=0.8, color='#FF9B00', label = 'Line')  
-# plt.scatter(taus, Ncounts, s=4, color='black', label = 'Data Points')
+plt.figure()
+plt.title(f"Second Order Correlation Function for -10ps delay pulses and binsize {STEP_ps}ps")
+plt.plot(taus, Ncounts, linewidth=0.8, color='#FF9B00', label = 'Line')  
+plt.scatter(taus, Ncounts, s=4, color='black', label = 'Data Points')
 
-# # Axis labels bigger
-# plt.xlabel(r"$\Delta \tau$ [ps]", fontsize=16)
-# plt.ylabel(r"$g_{2}(\tau)$", fontsize=16)
+# Axis labels bigger
+plt.xlabel(r"$\Delta \tau$ [ps]", fontsize=16)
+plt.ylabel(r"$g_{2}(\tau)$", fontsize=16)
 
-# # Increase tick size
-# plt.xticks(fontsize=10)
-# plt.yticks(fontsize=13)
+# Increase tick size
+plt.xticks(fontsize=10)
+plt.yticks(fontsize=13)
 
-# # Legend (if you want it)
-# plt.legend(fontsize=14, loc='best', frameon=True)
-# plt.xlim((10250, +55000))
-# plt.ylim((-3, +150))
-# plt.tight_layout()
-# plt.show()
+# Legend (if you want it)
+plt.legend(fontsize=14, loc='best', frameon=True)
+plt.xlim((10250, +55000))
+plt.ylim((-3, +150))
+plt.tight_layout()
+plt.show()
 
 
 
@@ -245,7 +281,7 @@ plt.yticks(fontsize=13)
 
 # Legend (if you want it)
 plt.legend(fontsize=14, loc='best', frameon=True)
-plt.xlim((-4900, -4600))
+plt.xlim((-150000, +150000))
 plt.ylim((-3, +220))
 plt.tight_layout()
 plt.show()
@@ -269,12 +305,12 @@ def Fitting_Intervals(First_Interval, Pulser_periodicity = 15200, maxtau = MaxTa
     lim_left_zero, lim_right_zero = First_Interval
     
     ### Positive direction
-    Right_Borders = np.arange(lim_right_zero, 1.5e+06, Pulser_periodicity)
-    Left_Borders = np.arange(lim_left_zero, 1.5e+06, Pulser_periodicity)
+    Right_Borders = np.arange(lim_right_zero, maxtau, Pulser_periodicity)
+    Left_Borders = np.arange(lim_left_zero, maxtau, Pulser_periodicity)
     
     ### Negative direction
-    Left_Borders_Opp = np.arange(lim_left_zero - Pulser_periodicity, -1.5e+06, -Pulser_periodicity)
-    Right_Borders_Opp = np.arange(lim_right_zero - Pulser_periodicity, -1.5e+06, -Pulser_periodicity)
+    Left_Borders_Opp = np.arange(lim_left_zero - Pulser_periodicity, -maxtau, -Pulser_periodicity)
+    Right_Borders_Opp = np.arange(lim_right_zero - Pulser_periodicity, -maxtau, -Pulser_periodicity)
     
     # Reverse the negative direction arrays
     Left_Borders_Opp_reversed = Left_Borders_Opp[::-1]
@@ -288,7 +324,7 @@ def Fitting_Intervals(First_Interval, Pulser_periodicity = 15200, maxtau = MaxTa
     
     
     
-I_primo = (-4895, -4630)
+I_primo = (10283, 10631)
 
 LEFT, RIGHT = Fitting_Intervals(I_primo)
 
@@ -319,7 +355,7 @@ plt.yticks(fontsize=13)
 # Legend (if you want it)
 # plt.legend(fontsize=14, loc='best', frameon=True)
 # plt.xlim((10250, +55000))
-plt.xlim((-155000, 0))
+plt.xlim((+2500000, +3100000))
 plt.ylim((-3, +150))
 plt.tight_layout()
 plt.show()
@@ -384,12 +420,17 @@ for i in range(len(results)):
     errCentri.append(results[i].loc[3]["Uncertainty"])
 
     
-    
-    
+centri = np.array(centri)
+errCentri = np.array(errCentri)    
+ConvertedCentri = centri / 1e6
+ConvertederrCentri = errCentri / 1e6
 
-plt.errorbar(centri, FWHMs, xerr = errCentri, yerr=errFWHMs, fmt='o', color='black', label='Data Points', markersize=2, elinewidth=1, capsize=1.5, ecolor='red')
-plt.xlabel('Taus [ps]')
+plt.figure(figsize=(10,6))
+plt.errorbar(ConvertedCentri, FWHMs, xerr = ConvertederrCentri, yerr=errFWHMs, fmt='o', color='black', label='Data Points', markersize=2, elinewidth=1, capsize=1.5, ecolor='red')
+plt.title(r"$g_{2}(\tau)$ Peaks : FWHMs vs Centers ")
+plt.xlabel(r'Taus [$\mu s$]')
 plt.ylabel('FWHMs [ps]')
+plt.tight_layout()
 plt.show()
 
 
@@ -421,7 +462,7 @@ RIGHT = RIGHT + Offset
 
 # %% 5th part of the script : Visual check that the intervals' boundaries have correctly shifted !!
 plt.figure()
-plt.title(f"Second Order Correlation Function for -10ps delay pulses and binsize {STEP_ps}ps")
+plt.title(f"Second Order Correlation Function for -50ps delay pulses and binsize {STEP_ps}ps")
 plt.plot(taus, Ncounts, linewidth=0.8, color='#FF9B00', label='Line')  
 
 # Aggiungi scatter plot con le barre di errore
@@ -498,7 +539,7 @@ import os
 # # Create a folder if it doesn't exist
 # os.makedirs(PATH/"fit_results_-10psDelay_4psStepSize", exist_ok=True)
 
-output_dir = f"fit_results_-50psDelay_{STEP_ps}psStepSize"
+output_dir = f"fit_results_-60ps_Delay_{STEP_ps}psStepSize"
 os.makedirs(output_dir, exist_ok=True)  # creates the folder if it doesn't exist
 
 # Define the Figures subfolder path
@@ -563,16 +604,25 @@ for i in range(len(results)):
     errCentri.append(results[i].loc[3]["Uncertainty"])
 
     
-    
-    
+
+
+centri = np.array(centri)
+errCentri = np.array(errCentri)    
+ConvertedCentri = centri / 1e6
+ConvertederrCentri = errCentri / 1e6
+
 plt.figure(figsize=(10,6))
-plt.errorbar(centri, FWHMs, xerr = errCentri, yerr=errFWHMs, fmt='o', color='black', label='Data Points', markersize=2, elinewidth=1, capsize=1.5, ecolor='red')
-plt.xlabel('Taus [ps]')
+plt.errorbar(ConvertedCentri, FWHMs, xerr = ConvertederrCentri, yerr=errFWHMs, fmt='o', color='black', label='Data Points', markersize=2, elinewidth=1, capsize=1.5, ecolor='red')
+    
+plt.title(r"$g_{2}(\tau)$ Peaks : FWHMs vs Centers ")
+plt.xlabel(r'$\tau$ [$\mu s$]')
 plt.ylabel('FWHMs [ps]')
 plt.tight_layout()
 
 # Define the filename (standardized name inside the Figures folder)
 figure_filename = os.path.join(figures_dir, "FWHM_vs_Taus.png")
+plt.savefig(figure_filename, dpi=300)
+figure_filename = os.path.join(figures_dir, "FWHM_vs_Taus.pdf")
 
 # Save the figure
 plt.savefig(figure_filename, dpi=300)
@@ -610,19 +660,25 @@ print("Uncertainty:", weighted_error)
 # %% WL's requested plot !
 
 
-npcenters = np.array(centers)
-nperrors = np.array(errCenters)
+npConvcenters = np.array(centers) / 1e6
+npConverrors = np.array(errCenters) / 1e6
+
+errCenters= []
+for i in range(len(results)):
+    errCenters.append(results[i].loc[3]["Uncertainty"])
+
+npConverrors = np.array(errCenters) / 1e6
 
 # Midpoints (x-axis)
-midpoints = (npcenters[1:] + npcenters[:-1]) / 2
+midpoints = (npConvcenters[1:] + npConvcenters[:-1]) / 2
 
 # Differences (y-axis)
-repetition_rates = npcenters[1:] - npcenters[:-1]
-repetition_errors = np.sqrt(nperrors[1:]**2 + nperrors[:-1]**2)
+repetition_rates = npConvcenters[1:] - npConvcenters[:-1]
+repetition_errors = np.sqrt(npConverrors[1:]**2 + npConverrors[:-1]**2)
 
 plt.figure(figsize=(8, 5))
-plt.errorbar(npcenters[:-1], repetition_rates, yerr=repetition_errors, color="black", fmt='.', ecolor='red', capsize=3)
-plt.xlabel(r'$\tau$ (ps) [first center of each pair]')
+plt.errorbar(npConvcenters[:-1], repetition_rates, yerr=repetition_errors, color="black", fmt='.', ecolor='red', capsize=3)
+plt.xlabel(r'$\tau$ $(\mu s)$ [first center of each pair]')
 plt.ylabel(r'$\Delta \tau$ (ps) [difference between centers]')
 plt.title('Pulse Spacing vs τ (anchored to first center)')
 plt.grid(True)
@@ -633,23 +689,33 @@ figure_filename = os.path.join(figures_dir, "PulseSpacing_vs_FirstCenter_Overall
 
 # Save the figure
 plt.savefig(figure_filename, dpi=300)
+
+figure_filename = os.path.join(figures_dir, "PulseSpacing_vs_FirstCenter_Overall.pdf")
+plt.savefig(figure_filename, dpi=300)
+
 plt.show()
 
 
 plt.figure(figsize=(8, 5))
-plt.errorbar(npcenters[:-1], repetition_rates, yerr=repetition_errors, color="black", fmt='.', ecolor='red', capsize=3)
-plt.xlim((-250000, +250000))
-plt.xlabel(r'$\tau$ (ps) [first center of each pair]')
+plt.errorbar(npConvcenters[:-1], repetition_rates, yerr=repetition_errors, color="black", fmt='.', ecolor='red', capsize=3)
+plt.xlabel(r'$\tau$ $(\mu s)$ [first center of each pair]')
 plt.ylabel(r'$\Delta \tau$ (ps) [difference between centers]')
 plt.title('Pulse Spacing vs τ (anchored to first center)')
 plt.grid(True)
 plt.tight_layout()
+
+plt.xlim((-0.4, +0.4))
 
 # Define the filename (standardized name inside the Figures folder)
 figure_filename = os.path.join(figures_dir, "PulseSpacing_vs_FirstCenter_Zoom1.png")
 
 # Save the figure
 plt.savefig(figure_filename, dpi=300)
+
+figure_filename = os.path.join(figures_dir, "PulseSpacing_vs_FirstCenter_Zoom1.pdf")
+plt.savefig(figure_filename, dpi=300)
+
+
 plt.show()
 
 
@@ -658,12 +724,14 @@ import pandas as pd
 import os
 import re
 
-folder_path0 = 'fit_results_-10psDelay_4psStepSize'
-folder_path1 = 'fit_results_-10ps_V2_Delay_4psStepSize'
-folder_path2 = 'fit_results_-25psDelay_4psStepSize'
-folder_path3 = 'fit_results_-50psDelay_5psStepSize'
+# folder_path0 = 'fit_results_-10psDelay_4psStepSize'
+folder_path1 = 'fit_results_-10ps_TrueDelay_4psStepSize'
+folder_path2 = 'fit_results_-25ps_Delay_4psStepSize'
+folder_path3 = 'fit_results_-35ps_Delay_4psStepSize'
+folder_path4 = 'fit_results_-50ps_Delay_5psStepSize'
+folder_path5 = 'fit_results_-60ps_Delay_14psStepSize'
 
-FolPATHS = [folder_path0, folder_path1, folder_path2, folder_path3]
+FolPATHS = [folder_path1, folder_path2, folder_path3, folder_path4, folder_path5]
 
 
 def file_extractor(folder_path):
@@ -767,9 +835,10 @@ import numpy as np
 # Define color and label mapping for each dataset
 plot_styles = {
     'results_0': {'color': 'black', 'label': '-10ps'},
-    'results_1': {'color': 'blue', 'label': '-10ps V2'},
-    'results_2': {'color': 'red', 'label': '-25ps'},
-    'results_3': {'color': 'green', 'label': '-50ps'}
+    'results_1': {'color': 'blue', 'label': '-25ps'},
+    'results_2': {'color': 'red', 'label': '-35ps'},
+    'results_3': {'color': 'green', 'label': '-50ps'},
+    'results_4': {'color': '#FF9B00', 'label': '-60ps'}
 }
 
 plt.figure(figsize=(10, 6))
@@ -854,12 +923,12 @@ for key in all_results.keys():
     )
 
 # Decorations
-plt.xlabel('Peak Center Position τ (ps)')
+plt.xlabel(r'Peak Center Position τ ($\mu s$)')
 plt.ylabel('FWHM (ps)')
 plt.title(r'$g_{2}(\tau)$FWHM vs Peak Center Position')
 plt.legend()
-ax = plt.gca()
-ax.xaxis.set_major_formatter(EngFormatter(unit='$\mu s$'))
+# ax = plt.gca()
+# ax.xaxis.set_major_formatter(EngFormatter(unit='$\mu s$'))
 plt.grid(True)
 plt.tight_layout()
 plt.show()
@@ -871,10 +940,12 @@ plt.show()
 # Use same style mapping as before
 plot_styles = {
     'results_0': {'color': 'black', 'label': '-10ps'},
-    'results_1': {'color': 'blue', 'label': '-10ps V2'},
-    'results_2': {'color': 'red', 'label': '-25ps'},
-    'results_3': {'color': 'green', 'label': '-50ps'}
+    'results_1': {'color': 'blue', 'label': '-25ps'},
+    'results_2': {'color': 'red', 'label': '-35ps'},
+    'results_3': {'color': 'green', 'label': '-50ps'},
+    'results_4': {'color': '#FF9B00', 'label': '-60ps'}
 }
+
 
 plt.figure(figsize=(10, 6))
 
@@ -906,13 +977,9 @@ for key in centri_all.keys():
     )
 
 # Plot settings
-plt.xlabel(r'$\tau$ (ps) [first center of each pair]')
-plt.ylabel(r'$\Delta \tau$ (ps) [difference between centers]')
-plt.title('Pulse Spacing vs τ (anchored to first center)')
-ax = plt.gca()
-ax.xaxis.set_major_formatter(EngFormatter(unit='$\mu s$'))
-ay = plt.gca()
-ay.yaxis.set_major_formatter(EngFormatter(unit='ns'))
+plt.xlabel(r'$\tau$ ($\mu s$) [first center of each pair]')
+plt.ylabel(r'$\Delta \tau$ (ns) [difference between centers]')
+plt.title('Pulse Spacing vs τ')
 plt.grid(True)
 plt.legend()
 plt.tight_layout()
