@@ -54,8 +54,8 @@ At the moment there is in the data folder this set of files:
 
 
 
-fname_detector2 = PATH / names[8]
-fname_detector3 = PATH / names[9]
+fname_detector2 = PATH / names[0]
+fname_detector3 = PATH / names[1]
 
 @njit
 def sparse_difference_matrix(stream1, stream2, max_difference, j_start=0):
@@ -212,7 +212,7 @@ def normalize(filename1, filename2, Counts_Coincident, acq_Time, startstop_clock
     return normalized_counts, err_Ncounts
 
 
-STEP_ps = 14
+STEP_ps = 4
 MaxTauDistance = 3000000
 
 coincidence_counts, taus = get_coincidence_counts_from_files(fname_detector2, fname_detector3, stepsize_ps=STEP_ps, maxtime_ps=MaxTauDistance, chunk_size=15000)
@@ -239,22 +239,30 @@ Ncounts, ErrNcounts = normalize(
 # %% MAIN PLOTTING CELL FOR SECOND ORDER CORRELATION FUNCTIONS FROM THE COINCIDENCE HISTOGRAMS !!!!!!!!!!
 
 plt.figure()
-plt.title(f"Second Order Correlation Function for -10ps delay pulses and binsize {STEP_ps}ps")
-plt.plot(taus, Ncounts, linewidth=0.8, color='#FF9B00', label = 'Line')  
-plt.scatter(taus, Ncounts, s=4, color='black', label = 'Data Points')
+plt.title(f"Coincidences over pulses with optical length of 65.1 ps and binsize {STEP_ps}ps")
+# plt.plot(taus, Ncounts, linewidth=0.8, color='#FF9B00', label = 'Line')  
+# plt.scatter(taus, Ncounts, s=4, color='black', label = 'Data Points')
+
+plt.plot(taus, coincidence_counts, linewidth=0.8, color='#FF9B00', label = 'Line')  
+plt.scatter(taus, coincidence_counts, s=4, color='black', label = 'Data Points')
+
+
+# # Axis labels bigger
+# plt.xlabel(r"$\Delta \tau$ [ps]", fontsize=16)
+# plt.ylabel(r"$g_{2}(\tau)$", fontsize=16)
 
 # Axis labels bigger
 plt.xlabel(r"$\Delta \tau$ [ps]", fontsize=16)
-plt.ylabel(r"$g_{2}(\tau)$", fontsize=16)
+plt.ylabel(r"Coincidence Counts", fontsize=16)
 
 # Increase tick size
 plt.xticks(fontsize=10)
 plt.yticks(fontsize=13)
 
 # Legend (if you want it)
-plt.legend(fontsize=14, loc='best', frameon=True)
-plt.xlim((10250, +55000))
-plt.ylim((-3, +150))
+# plt.legend(fontsize=14, loc='best', frameon=True)
+plt.xlim((-73400, +64200))
+plt.ylim((-3, +3500))
 plt.tight_layout()
 plt.show()
 
@@ -886,9 +894,15 @@ for key in all_results.keys():
 
 # Decorations
 plt.axhline(0, color='gray', linestyle='--')
-plt.xlabel('Periods of Distance from τ=0')
-plt.ylabel('ΔFWHM relative to τ=0 (ps)')
-plt.title(r'$g_{2}(\tau)$ Peak Width Deviation vs Period Distance')
+
+# Increase tick size
+plt.xticks(fontsize=15)
+plt.yticks(fontsize=15)
+
+
+plt.xlabel('Periods of Distance from τ=0', fontsize = 15)
+plt.ylabel('ΔFWHM relative to τ=0 (ps)', fontsize = 15)
+plt.title(r'$g_{2}(\tau)$ Peak Width Deviation vs Period Distance', fontsize = 15)
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
@@ -923,10 +937,15 @@ for key in all_results.keys():
     )
 
 # Decorations
-plt.xlabel(r'Peak Center Position τ ($\mu s$)')
-plt.ylabel('FWHM (ps)')
-plt.title(r'$g_{2}(\tau)$FWHM vs Peak Center Position')
+plt.xlabel(r'Peak Center Position τ ($\mu s$)', fontsize = 15)
+plt.ylabel('FWHM (ps)', fontsize = 15)
+plt.title(r'$g_{2}(\tau)$ FWHM vs Peak Center Position', fontsize = 15)
 plt.legend()
+
+# Increase tick size
+plt.xticks(fontsize=15)
+plt.yticks(fontsize=15)
+
 # ax = plt.gca()
 # ax.xaxis.set_major_formatter(EngFormatter(unit='$\mu s$'))
 plt.grid(True)
@@ -962,7 +981,7 @@ for key in centri_all.keys():
     
     #Conversion to better units
     nmidpoints = midpoints / 1e6
-    conv_repetitionRates = repetition_rates / 1e3
+    conv_repetitionRates = (repetition_rates / 1e3)
     conv_yerr = repetition_errors / 1e3
     
     plt.errorbar(
@@ -977,10 +996,15 @@ for key in centri_all.keys():
     )
 
 # Plot settings
-plt.xlabel(r'$\tau$ ($\mu s$) [first center of each pair]')
-plt.ylabel(r'$\Delta \tau$ (ns) [difference between centers]')
-plt.title('Pulse Spacing vs τ')
+plt.xlabel(r'$\tau$ ($\mu s$) [first center of each pair]', fontsize = 15)
+plt.ylabel(r'$\Delta \tau$ (ns) [difference between centers]', fontsize = 15)
+plt.title('Pulse Spacing vs τ', fontsize = 15)
 plt.grid(True)
+
+# Increase tick size
+plt.xticks(fontsize=15)
+plt.yticks(fontsize=15)
+
 plt.legend()
 plt.tight_layout()
 plt.show()
