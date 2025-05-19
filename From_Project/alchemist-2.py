@@ -10,6 +10,8 @@ from numba_progress import ProgressBar
 import numpy.typing as npt
 from pathlib import Path
 from matplotlib.ticker import EngFormatter
+from src.Librerie import Do_Gauss_Fit_v4, gaussian, lorentzian, Do_Lorentzian_Fit, Do_Gauss_Fit_v5
+
 
 
 # %% 1st part of the script !!!!!!!!!!!
@@ -459,7 +461,7 @@ FOR THIS REASON YOU MAY WANT TO AVOID RUNNING SEVERAL TIMES THIS OPERATION !!!!
 """
 
 
-from src.Librerie import Do_Gauss_Fit_v4
+
 
 #Correction of the taus array
 taus = taus+Offset
@@ -1008,4 +1010,139 @@ plt.yticks(fontsize=15)
 plt.legend()
 plt.tight_layout()
 plt.show()
+
+# %% Read CSV files for the mode locked laser
+
+import pandas as pd
+
+PATH2 = Path("ModeLockedLaser")
+flder_path = PATH2
+list_files = [f.name for f in flder_path.iterdir() if f.is_file() and f.suffix == '.csv']
+names = [list_files[0], list_files[1], list_files[2], list_files[3], list_files[4]]
+
+# Load the CSV file with semicolon separator
+
+df = pd.read_csv(PATH2 / names[1], sep=";") 
+
+# Extract bin center positions (first column)
+positions = df.iloc[:, 0].values
+
+# Extract the histogram values
+hist1 = df.iloc[:, 1].values
+hist2 = df.iloc[:, 2].values
+hist3 = df.iloc[:, 3].values
+hist4 = df.iloc[:, 4].values
+
+# Optionally extract all histograms into a 2D array
+all_hists = df.iloc[:, 1:5].values
+err_all_hists = np.sqrt(all_hists)
+
+
+
+# # Optional: Print to verify
+# print("Positions:", positions)
+# print("Histogram 1:", hist1)
+# print("All Histograms (2D):", all_hists)
+
+# %% Start of the 2nd battle of the fits
+
+Dataframe_Gaussianfits = []
+Dataframe_Lorentzianfits = []
+
+INDICE = 0
+
+for i in range(4):
+    
+    if((i == 0) | (i == 2)):
+        
+        print(f"The figure {i} plot belongs to the hist{i+1} Histogram")
+        
+        # Find index of the maximum value
+        peak_index = np.argmax(all_hists[:, i])
+        
+        # Find the position (bin center) corresponding to the peak
+        peak_position = positions[peak_index]
+        arr = all_hists[:, i]
+        eArr = err_all_hists[:, i]
+        peak_value = arr[peak_index]
+        
+        print(f"Peak at position: {peak_position}, with value: {peak_value}")
+        
+        #Creating a proper mask
+        left = peak_position - 120
+        right = peak_position + 120
+        mask = (positions > left) & (positions < right)
+        
+        selected_positions = positions[mask]
+        selected_Counts = arr[mask]
+        selected_errors = eArr[mask]
+        
+        #Plot the histogram, including an horizontal line @ the maximum
+        plt.figure(figsize=(8,6))
+        plt.errorbar(positions, all_hists[:, i], yerr = err_all_hists[:, i], fmt = '.', color='black', capsize=2, ecolor = 'orange', label = 'Data Points')
+        plt.axhline(peak_value, color = 'red')
+        plt.axvline(left, ls= '--', color = 'purple', label = 'Left Boundary')
+        plt.axvline(right, ls = '-.', color = 'purple', label = 'Right Boundary')
+        
+        plt.xlim(peak_position - 500, peak_position + 500)
+        plt.grid(True)
+        # plt.show()
+        
+        print('As follows the results of the gaussian fit :\n')
+        Dataframe_Gaussianfits.append(Do_Gauss_Fit_v5(selected_positions, selected_Counts, selected_errors, PrintParams=True, DebugPrints=True))
+        
+        
+        
+        # print('\n\nAs follows the results of the Lorentzian fit\n')
+        # Dataframe_Lorentzianfits.append(Do_Lorentzian_Fit(selected_positions, selected_Counts, selected_errors, True))
+        
+        # print(f'\n\n{INDICE}')
+        plt.plot(selected_positions, gaussian(selected_positions, Dataframe_Gaussianfits[INDICE].loc[0]["Value"],
+                                              Dataframe_Gaussianfits[INDICE].loc[1]["Value"],
+                                              Dataframe_Gaussianfits[INDICE].loc[2]["Value"],
+                                              Dataframe_Gaussianfits[INDICE].loc[3]["Value"]), color = 'red', label = "Gaussian fit")
+       
+        # plt.plot(selected_positions, lorentzian(selected_positions, Dataframe_Gaussianfits[INDICE].loc[0]["Value"],
+        #                                       Dataframe_Gaussianfits[INDICE].loc[1]["Value"],
+        #                                       Dataframe_Gaussianfits[INDICE].loc[2]["Value"],
+        #                                       Dataframe_Gaussianfits[INDICE].loc[3]["Value"]), color = '#003399', label = "Lorentzian fit")
+        
+        
+        
+        
+        plt.legend(fontsize=8, loc='best', frameon=True)
+        plt.show()
+        
+        # print(f'IL VALORE DELLA VARIABILE "INDICE" È ATTUALMENTE : {INDICE}')
+        
+        INDICE += 1
+        print('\n\n\n')
+        
+        
+        #Dataframe_fits[INDICE].loc[0]["Value"]
+        
+        
+    
+
+# Do_Gauss_Fit_v4(Selection_Taus, Selected_Ncounts, selected_errors, True)
+        
+    
+        
+    
+    
+    
+    
+# plt.scatter(positions, hist1, s=0.2)
+# plt.grid(True)
+# plt.xlim(7300,7900)
+# plt.show()
+
+
+
+# plt.figure()
+# plt.scatter(positions, hist2)
+
+
+
+
 
