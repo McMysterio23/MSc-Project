@@ -10,7 +10,7 @@ from numba_progress import ProgressBar
 import numpy.typing as npt
 from pathlib import Path
 from matplotlib.ticker import EngFormatter
-from src.Librerie import Do_Gauss_Fit_v4, gaussian, lorentzian, Do_Lorentzian_Fit, Do_Gauss_Fit_v5
+from src.Librerie import Do_Gauss_Fit_v4, gaussian, lorentzian, Do_Lorentzian_Fit, Do_Gauss_Fit_v5, sech2, Do_Sech2_Fit
 
 
 
@@ -1048,6 +1048,7 @@ err_all_hists = np.sqrt(all_hists)
 
 Dataframe_Gaussianfits = []
 Dataframe_Lorentzianfits = []
+Dataframe_SecSquaredfits = []
 
 INDICE = 0
 
@@ -1068,9 +1069,11 @@ for i in range(4):
         
         print(f"Peak at position: {peak_position}, with value: {peak_value}")
         
+        
         #Creating a proper mask
-        left = peak_position - 120
-        right = peak_position + 120
+        Fit_Distance = 180
+        left = peak_position - Fit_Distance
+        right = peak_position + Fit_Distance
         mask = (positions > left) & (positions < right)
         
         selected_positions = positions[mask]
@@ -1084,17 +1087,23 @@ for i in range(4):
         plt.axvline(left, ls= '--', color = 'purple', label = 'Left Boundary')
         plt.axvline(right, ls = '-.', color = 'purple', label = 'Right Boundary')
         
-        plt.xlim(peak_position - 500, peak_position + 500)
+        plt.xlim(peak_position - 300, peak_position + 300)
         plt.grid(True)
         # plt.show()
         
-        print('As follows the results of the gaussian fit :\n')
-        Dataframe_Gaussianfits.append(Do_Gauss_Fit_v5(selected_positions, selected_Counts, selected_errors, PrintParams=True, DebugPrints=True))
+        print('\n\nAs follows the results of the gaussian fit :\n')
+        Dataframe_Gaussianfits.append(Do_Gauss_Fit_v5(selected_positions, selected_Counts, selected_errors, PrintParams=True, DebugPrints=False))
         
         
         
-        # print('\n\nAs follows the results of the Lorentzian fit\n')
-        # Dataframe_Lorentzianfits.append(Do_Lorentzian_Fit(selected_positions, selected_Counts, selected_errors, True))
+        print('\n\nAs follows the results of the Lorentzian fit\n')
+        Dataframe_Lorentzianfits.append(Do_Lorentzian_Fit(selected_positions, selected_Counts, selected_errors, PrintParams=True, View=False, DebugPrints=False))
+        
+        
+        print('\n\nAs follows the results of the sech² fit:\n')
+        Dataframe_SecSquaredfits.append(Do_Sech2_Fit(selected_positions, selected_Counts, selected_errors, PrintParams=True, DebugPrints=False))
+        
+        
         
         # print(f'\n\n{INDICE}')
         plt.plot(selected_positions, gaussian(selected_positions, Dataframe_Gaussianfits[INDICE].loc[0]["Value"],
@@ -1102,15 +1111,22 @@ for i in range(4):
                                               Dataframe_Gaussianfits[INDICE].loc[2]["Value"],
                                               Dataframe_Gaussianfits[INDICE].loc[3]["Value"]), color = 'red', label = "Gaussian fit")
        
-        # plt.plot(selected_positions, lorentzian(selected_positions, Dataframe_Gaussianfits[INDICE].loc[0]["Value"],
-        #                                       Dataframe_Gaussianfits[INDICE].loc[1]["Value"],
-        #                                       Dataframe_Gaussianfits[INDICE].loc[2]["Value"],
-        #                                       Dataframe_Gaussianfits[INDICE].loc[3]["Value"]), color = '#003399', label = "Lorentzian fit")
+        plt.plot(selected_positions, lorentzian(selected_positions, Dataframe_Lorentzianfits[INDICE].loc[0]["Value"],
+                                              Dataframe_Lorentzianfits[INDICE].loc[1]["Value"],
+                                              Dataframe_Lorentzianfits[INDICE].loc[2]["Value"],
+                                              Dataframe_Lorentzianfits[INDICE].loc[3]["Value"]), color = '#003399', label = "Lorentzian fit")
         
         
-        
+        plt.plot(selected_positions, sech2(selected_positions, Dataframe_SecSquaredfits[INDICE].loc[0]["Value"],
+                                              Dataframe_SecSquaredfits[INDICE].loc[1]["Value"],
+                                              Dataframe_SecSquaredfits[INDICE].loc[2]["Value"],
+                                              Dataframe_SecSquaredfits[INDICE].loc[3]["Value"]), color = 'purple', label = r"$Sec^{2}$ fit")
         
         plt.legend(fontsize=8, loc='best', frameon=True)
+        
+        plt.xlabel('Time [ps]')
+        plt.ylabel('Counts')
+        
         plt.show()
         
         # print(f'IL VALORE DELLA VARIABILE "INDICE" È ATTUALMENTE : {INDICE}')
