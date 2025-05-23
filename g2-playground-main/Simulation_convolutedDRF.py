@@ -31,7 +31,7 @@ VIEW_LATER = False
 
 
 # Specify the brightness, here we relate it to power and wavelength.
-power = 0.65*1e-11 # W
+power = 0.85*1e-11 # W
 wavelength = 935e-9 # nm
 brightness = power * wavelength / (6.6e-34 * 3e8)
 
@@ -42,7 +42,7 @@ timing_jitter = np.sqrt(timing_jitter_card**2+timing_jitter_detector**2)
 lg = LightGenerator(
     stream_length=1e-2, 
     pulse_width=0.05, 
-    period=20, 
+    period=15.2, 
     dark_counts=400, 
     brightness=brightness, 
     extinction_ratio=900, 
