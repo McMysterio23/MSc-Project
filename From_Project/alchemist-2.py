@@ -4,6 +4,7 @@ Created on Mon Apr 28 14:26:36 2025
 @author: Maccarinelli
 """
 import matplotlib.pyplot as plt
+import pandas as pd
 import numpy as np
 from numba import njit, prange
 from numba_progress import ProgressBar
@@ -730,7 +731,7 @@ plt.show()
 
 
 # %% Opening the CSV files from the fits !!!!
-import pandas as pd
+
 import os
 import re
 
@@ -1013,7 +1014,7 @@ plt.show()
 
 # %% Read CSV files for the mode locked laser
 
-import pandas as pd
+
 
 PATH2 = Path("ModeLockedLaser")
 flder_path = PATH2
@@ -1088,13 +1089,13 @@ for i in range(4):
         selected_errors = eArr[mask]
         
         #Plot the histogram, including an horizontal line @ the maximum
-        plt.figure(figsize=(8,6))
-        plt.errorbar(positions, all_hists[:, i], yerr = err_all_hists[:, i], fmt = '.', color='black', capsize=2, ecolor = 'orange', label = 'Data Points')
-        plt.axhline(peak_value, color = 'red')
-        plt.axvline(left, ls= '--', color = 'purple', label = 'Left Boundary')
-        plt.axvline(right, ls = '-.', color = 'purple', label = 'Right Boundary')
+        plt.figure(figsize=(15,8))
+        plt.errorbar(positions, all_hists[:, i], yerr = err_all_hists[:, i], fmt = '.', color='grey', capsize=2, ecolor = 'orange', label = 'Data Points')
+        #plt.axhline(peak_value, color = 'red')
+        #plt.axvline(left, ls= '--', color = 'purple', label = 'Left Boundary')
+        #plt.axvline(right, ls = '-.', color = 'purple', label = 'Right Boundary')
         
-        plt.xlim(peak_position - 300, peak_position + 300)
+        plt.xlim(peak_position - 80, peak_position + 80)
         plt.grid(True)
         # plt.show()
         
@@ -1116,20 +1117,20 @@ for i in range(4):
         plt.plot(selected_positions, gaussian(selected_positions, Dataframe_Gaussianfits[INDICE].loc[0]["Value"],
                                               Dataframe_Gaussianfits[INDICE].loc[1]["Value"],
                                               Dataframe_Gaussianfits[INDICE].loc[2]["Value"],
-                                              Dataframe_Gaussianfits[INDICE].loc[3]["Value"]), color = 'red', label = "Gaussian fit")
+                                              Dataframe_Gaussianfits[INDICE].loc[3]["Value"]), color = 'red', label = "Gaussian fit", ls = '-.')
        
         plt.plot(selected_positions, lorentzian(selected_positions, Dataframe_Lorentzianfits[INDICE].loc[0]["Value"],
                                               Dataframe_Lorentzianfits[INDICE].loc[1]["Value"],
                                               Dataframe_Lorentzianfits[INDICE].loc[2]["Value"],
-                                              Dataframe_Lorentzianfits[INDICE].loc[3]["Value"]), color = '#003399', label = "Lorentzian fit")
+                                              Dataframe_Lorentzianfits[INDICE].loc[3]["Value"]), color = '#003399', label = "Lorentzian fit", ls = '-.')
         
         
         plt.plot(selected_positions, sech2(selected_positions, Dataframe_SecSquaredfits[INDICE].loc[0]["Value"],
                                               Dataframe_SecSquaredfits[INDICE].loc[1]["Value"],
                                               Dataframe_SecSquaredfits[INDICE].loc[2]["Value"],
-                                              Dataframe_SecSquaredfits[INDICE].loc[3]["Value"]), color = 'purple', label = r"$Sec^{2}$ fit")
+                                              Dataframe_SecSquaredfits[INDICE].loc[3]["Value"]), color = 'green', label = r"$Sech^{2}$ fit")
         
-        plt.legend(fontsize=8, loc='best', frameon=True)
+        plt.legend(fontsize=15, loc='best', frameon=True)
         
         plt.xlabel('Time [ps]')
         plt.ylabel('Counts')
@@ -1191,7 +1192,7 @@ with i being the number of the file being used.
 
 """
 
-import pandas as pd
+
 import os
 import re
 
@@ -1328,110 +1329,354 @@ for i in range(5):
 #     errCenters = np.array(errCenters_all[key])
 #     errAmplitudes = np.array(errAmplitudes_all[key])
 #     errBaselines = np.array(errBaselines_all[key])
-    
-# %% TOWARDS THE CONVOLUTION OF THE TWO SHAPES : PART 1 (SBAGLIATO !!!!!)
 
 
+# %% The direct convolution integral using hypothetical datas
+
+from scipy.integrate import quad
+import matplotlib.pyplot as plt
+
+
+
+
+
+#What i see in the Lab measurements
 x = np.linspace(-700, 700, 25000)
-
 f1 = sech2(x, Amplitudes_all[0], Baselines_all[0], Widths_all[0], 0)
-f2 = sech2(x, Amplitudes_all[1], Baselines_all[1], Widths_all[1], 0)
 
 
 
-plt.figure(figsize=(10, 5))
-plt.plot(x, f1, label='Detector 1')
-plt.plot(x, f2, label='Detector 2', linestyle='--')
-plt.xlabel('Time [arb. units]')
-plt.ylabel('Signal')
-plt.title('Detector Pulse Shapes')
-plt.legend()
-plt.grid(True)
-plt.show()
+def model(t, pulse_fwhm, waveguide_fwhm, irf_fwhm):
+    pulse = sech2(t, pulse_fwhm)
+    dispersion = gaussian(t, waveguide_fwhm)
+    irf = gaussian(t, irf_fwhm)
 
+    # Convolve step by step
+    intermediate = np.convolve(pulse, dispersion, mode='same')
+    full = np.convolve(intermediate, irf, mode='same')
 
-n = len(f1) + len(f2) - 1
-F1 = np.fft.fft(f1, n=n)
-F2 = np.fft.fft(f2, n=n)
-
-F_conv = F1 * F2
-f_conv = np.fft.ifft(F_conv)
-f_conv = np.real(f_conv)
-
-# Create a new x-axis for the convolution result (longer length)
-dx = x[1] - x[0]  # spacing
-x_conv = np.linspace(x[0]*2, x[-1]*2, n)  # approx double range
-
-# Plot
-plt.figure(figsize=(10,6))
-plt.plot(x, f1, label='Detector 1')
-plt.plot(x, f2, label='Detector 2', linestyle='--')
-plt.plot(x_conv, f_conv, color='purple', label='Convolution')
-plt.xlabel('Time [arb. units]')
-plt.ylabel('Signal')
-plt.title('Convolution of Detector Pulses')
-plt.legend()
-plt.grid(True)
-plt.show()
-
-# %% Fit convolution (da cestinare !!!)
+    return full
 
 
 
-result_fit = []
-INDICE = 0
-# Find index of the maximum value
-peak_index = np.argmax(f_conv)
-
-# Find the position (bin center) corresponding to the peak
-peak_position = x_conv[peak_index]
-
-peak_value = f_conv[peak_index]
-
-print(f"Peak at position: {peak_position}, with value: {peak_value}")
 
 
-#Creating a proper mask
-Fit_Distance = 360
-left = peak_position - Fit_Distance
-right = peak_position + Fit_Distance
-mask = (x_conv > left) & (x_conv < right)
 
-selected_x = x_conv[mask]
-selected_y = f_conv[mask]
 
-#Plot the histogram, including an horizontal line @ the maximum
-plt.figure(figsize=(8,6))
-plt.plot(x_conv, f_conv, color = 'Green', label = 'Convolution')
-plt.axhline(peak_value, color = 'orange', ls = '-.', label = 'Upper Boundary')
-plt.axvline(left, ls= '--', color = 'purple', label = 'Left Boundary')
-plt.axvline(right, ls = '-.', color = 'purple', label = 'Right Boundary')
 
-plt.xlim(peak_position - 300, peak_position + 300)
-plt.grid(True)
+
+# plt.figure()
+# plt.plot(x, f1)
 # plt.show()
 
-print('\n\nAs follows the results of the gaussian fit :\n')
-result_fit.append(Do_Sech2_Fit(selected_x, selected_y, PrintParams=True, DebugPrints=True))
 
 
 
-# print(f'\n\n{INDICE}')
-plt.plot(selected_x, sech2(selected_x, result_fit[INDICE].loc[0]["Value"],
-                                      result_fit[INDICE].loc[1]["Value"],
-                                      result_fit[INDICE].loc[2]["Value"],
-                                      result_fit[INDICE].loc[3]["Value"]), color = 'red', label = "Sech2 fit")
+# %% Attempt to deconvolve via numerical simulations 
+
+from scipy.optimize import curve_fit
+
+PATH2 = Path("ModeLockedLaser")
+flder_path = PATH2
+list_files = [f.name for f in flder_path.iterdir() if f.is_file() and f.suffix == '.csv']
+names = [list_files[0], list_files[1], list_files[2], list_files[3], list_files[4]]
+
+# Load the CSV file with semicolon separator
+
+
+F_Index = 0
+
+
+df = pd.read_csv(PATH2 / names[F_Index], sep=";") 
+
+# Extract bin center positions (first column)
+positions = df.iloc[:, 0].values
+
+# Extract the histogram values
+hist1 = df.iloc[:, 1].values
+hist2 = df.iloc[:, 2].values
+hist3 = df.iloc[:, 3].values
+hist4 = df.iloc[:, 4].values
+
+# Optionally extract all histograms into a 2D array
+all_hists = df.iloc[:, 1:5].values
+err_all_hists = np.sqrt(all_hists)
+
+
+Dataframe_ModelFits = []
+Dataframe_SecSquaredfits = []
+
+INDICE = 0
+
+Printed_Infos = True
+
+
+def sech2_fwhm(x, A, b, fwhm, t0):
+    tau = fwhm / 1.76
+    return A * (1 / np.cosh((x - t0) / tau))**2 + b
 
 
 
-plt.legend(fontsize=8, loc='best', frameon=True)
+for i in range(4):
+    if i in [0, 2]:
+        print(f"The figure {i} plot belongs to the hist{i+1} Histogram")
+        
+        # Extract data
+        arr = all_hists[:, i]
+        eArr = err_all_hists[:, i]
+        peak_index = np.argmax(arr)
+        peak_position = positions[peak_index]
+        peak_value = arr[peak_index]
+        
+        # Define fit window
+        Fit_Distance = 180
+        left, right = peak_position - Fit_Distance, peak_position + Fit_Distance
+        mask = (positions > left) & (positions < right)
+        
+        selected_positions = positions[mask]
+        selected_Counts = arr[mask]
+        selected_errors = eArr[mask]
+        
+        # Plot original histogram
+        plt.figure(figsize=(15, 8))
+        plt.errorbar(positions, arr, yerr=eArr, fmt='.', color='grey', capsize=2, ecolor='orange', label='Data')
+        plt.xlim(peak_position - 80, peak_position + 80)
+        plt.grid(True)
+        
+        # --- Fit with sech² only
+        print('\n\nAs follows the results of the sech² fit:\n')
+        df_sech2 = Do_Sech2_Fit(selected_positions, selected_Counts, selected_errors, PrintParams=True, DebugPrints=Printed_Infos)
+        Dataframe_SecSquaredfits.append(df_sech2)
 
-plt.xlabel('Time [ps]')
-# plt.ylabel('Counts')
+        # Extract initial guesses from sech² fit
+        A0 = df_sech2.loc[0]["Value"]
+        b0 = df_sech2.loc[1]["Value"]
+        t0 = df_sech2.loc[3]["Value"]
+        fwhm_pulse0 = df_sech2.loc[2]["Value"] * 1.76  # tau → FWHM
 
-plt.show()
+        t_min, t_max = selected_positions.min(), selected_positions.max()
+        t_range = t_max - t_min
 
-# print(f'IL VALORE DELLA VARIABILE "INDICE" È ATTUALMENTE : {INDICE}')
+        # Plot sech²-only fit
+        # plt.plot(selected_positions, sech2(selected_positions, A0, b0, df_sech2.loc[2]["Value"], t0),
+                 # color='green', label=r"Sech$^2$ Fit")
 
-# INDICE += 1
-# print('\n\n\n')
+        # --- Fit convolved model
+        def convolved_model(x, A, b, fwhm_pulse, t0, fwhm_irf):
+            pulse = sech2_fwhm(x, A, 0, fwhm_pulse, t0)  # no baseline
+            irf = gaussian(x, 1, 0, fwhm_irf, t0)  # unit amplitude, centered at t0
+            area = np.trapezoid(irf, x)
+            if area > 0:
+                irf /= area  # normalize IRF
+            conv = np.convolve(pulse, irf, mode='same')
+            return conv + b
+
+        # Guesses and bounds
+        # guess = [A0, b0, fwhm_pulse0, t0, 10.0]  # 10 ps IRF guess
+        guess = [A0, b0, 7, t0, 50]  # 10 ps IRF guess
+        # lower_bounds = [0, 0, 1e-3, t_min - 0.2 * t_range, 1e-3]
+        # upper_bounds = [np.inf, np.inf, t_range, t_max + 0.2 * t_range, 0.5 * t_range]
+        
+        # Lower and upper bounds for the fit
+        lower_bounds = [
+            0,              # A (amplitude)
+            0,              # b (baseline)
+            0.002,           # fwhm_pulse ≥ 20 fs
+            t_min - 0.1 * t_range,  # t0: small shift allowed
+            5.0             # fwhm_irf ≥ 5 ps, conservative lower bound
+        ]
+        
+        upper_bounds = [
+            np.inf,         # A
+            np.inf,         # b
+            25,          # fwhm_pulse ≤ 200 fs
+            t_max + 0.1 * t_range,  # t0
+            200.0           # fwhm_irf ≤ 200 ps
+        ]
+
+
+        # params = [A0, b0, 0.05, t0, 27]
+        # for p, low, high, name in zip(params, lower_bounds, upper_bounds, ["A0", "b0", "tau0", "t0", "irf0"]):
+        #     if not (low <= p <= high):
+        #         print(f"❌ Parameter '{name}' = {p} is outside bounds: [{low}, {high}]")
+
+
+        try:
+            popt, pcov = curve_fit(
+                convolved_model,
+                selected_positions,
+                selected_Counts,
+                p0=guess,
+                bounds=(lower_bounds, upper_bounds),
+                sigma=selected_errors,
+                absolute_sigma=True
+            )
+        except RuntimeError as e:
+            print("Fit failed:", e)
+            continue
+
+        # Compute fit residuals
+        model_vals = convolved_model(selected_positions, *popt)
+        residuals = selected_Counts - model_vals
+
+        # Chi-squared
+        chi2 = np.sum((residuals / selected_errors)**2)
+
+        # Degrees of freedom
+        dof = len(selected_positions) - len(popt)
+
+        # Reduced chi-squared
+        red_chi2 = chi2 / dof if dof > 0 else np.nan
+        
+
+        # Save parameters
+        fit_result = pd.DataFrame({
+            "Parameter": ["A", "b", "fwhm_pulse", "t0", "fwhm_irf"],
+            "Value": popt,
+            "StdDev": np.sqrt(np.diag(pcov))
+        })
+        
+        # Append chi-squared stats to DataFrame
+        fit_result = pd.concat([
+            fit_result,
+            pd.DataFrame({
+                "Parameter": ["Chi2", "Reduced_Chi2"],
+                "Value": [chi2, red_chi2],
+                "StdDev": [np.nan, np.nan]
+            })
+        ], ignore_index=True)
+        
+        Dataframe_ModelFits.append(fit_result)
+        
+        print('\n\nThe results of the fit of the datapoints with the convoluted model are : \n\n')
+        print(fit_result)
+        
+        print(f'\n\nReduced Chi squared currently of {red_chi2}')
+
+        # Plot IRF and convolved fit
+        irf_curve = gaussian(selected_positions, 1, 0, popt[4], popt[3])
+        irf_curve /= np.trapezoid(irf_curve, selected_positions)
+        irf_curve_scaled = irf_curve * popt[0]  # scale to pulse amplitude
+
+        plt.plot(selected_positions, irf_curve_scaled + popt[1], '--', color='purple', label="IRF (Gaussian)")
+        plt.plot(selected_positions, convolved_model(selected_positions, *popt),
+                 '-', color='red', label="Convolved Fit")
+        
+        optical_pulse = sech2_fwhm(selected_positions, popt[0], 0, popt[2], popt[3])
+        plt.plot(selected_positions, optical_pulse + popt[1], '--', color='blue', label='Optical Pulse (Sech²)')
+        
+        plt.ylim(-25, peak_value + 120)
+        
+        plt.xlabel('Time [ps]')
+        plt.ylabel('Counts')
+        plt.legend(fontsize=14)
+        plt.title(f"Fit for Histogram {i+1}")
+        plt.show()
+
+        INDICE += 1
+        print("\n\n")
+
+
+# %% 
+
+# for i in range(4):
+    
+#     if((i == 0) | (i == 2)):
+        
+#         print(f"The figure {i} plot belongs to the hist{i+1} Histogram")
+        
+#         # Find index of the maximum value
+#         peak_index = np.argmax(all_hists[:, i])
+        
+#         # Find the position (bin center) corresponding to the peak
+#         peak_position = positions[peak_index]
+#         arr = all_hists[:, i]
+#         eArr = err_all_hists[:, i]
+#         peak_value = arr[peak_index]
+        
+#         print(f"Peak at position: {peak_position}, with value: {peak_value}")
+        
+        
+#         #Creating a proper mask
+#         Fit_Distance = 180
+#         left = peak_position - Fit_Distance
+#         right = peak_position + Fit_Distance
+#         mask = (positions > left) & (positions < right)
+        
+#         selected_positions = positions[mask]
+#         selected_Counts = arr[mask]
+#         selected_errors = eArr[mask]
+        
+        
+#         #Plot 
+#         plt.figure(figsize=(15,8))
+#         plt.errorbar(positions, all_hists[:, i], yerr = err_all_hists[:, i], fmt = '.', color='grey', capsize=2, ecolor = 'orange', label = 'Data Points')
+#         #plt.axhline(peak_value, color = 'red')
+#         #plt.axvline(left, ls= '--', color = 'purple', label = 'Left Boundary')
+#         #plt.axvline(right, ls = '-.', color = 'purple', label = 'Right Boundary')
+        
+#         plt.xlim(peak_position - 80, peak_position + 80)
+#         plt.grid(True)
+#         # plt.show()
+        
+        
+        
+#         print('\n\nAs follows the results of the sech² fit:\n')
+#         Dataframe_SecSquaredfits.append(Do_Sech2_Fit(selected_positions, selected_Counts, selected_errors, PrintParams=True, DebugPrints=Printed_Infos))
+        
+        
+#         plt.plot(selected_positions, sech2(selected_positions, Dataframe_SecSquaredfits[INDICE].loc[0]["Value"],
+#                                               Dataframe_SecSquaredfits[INDICE].loc[1]["Value"],
+#                                               Dataframe_SecSquaredfits[INDICE].loc[2]["Value"],
+#                                               Dataframe_SecSquaredfits[INDICE].loc[3]["Value"]), color = 'green', label = r"TCSPC $Sech^{2}$ fit")
+        
+#         # Initial parameter guess
+#         A0 = Dataframe_SecSquaredfits[INDICE].loc[0]["Value"]
+#         b0 = Dataframe_SecSquaredfits[INDICE].loc[1]["Value"]
+#         tau0 = 7
+#         t0 = Dataframe_SecSquaredfits[INDICE].loc[3]["Value"]
+#         guess = [A0, b0, abs(tau0), t0]
+
+#                # Lower bounds
+#         lower_bounds = [
+#             0,          # A: Amplitude ≥ 0
+#             0,          # b: Baseline ≥ 0
+#             1e-3,       # fwhm_pulse: at least 1 fs (avoid zero width)
+#             t_min - 0.2 * t_range,  # t0: slightly outside measured window
+#             1e-3        # fwhm_irf: IRF width ≥ 1 fs
+#         ]
+        
+#         # Upper bounds
+#         upper_bounds = [
+#             np.inf,     # A: Amplitude unbounded
+#             np.inf,     # b: Baseline unbounded
+#             t_range,    # fwhm_pulse: max width can't exceed the time window
+#             t_max + 0.2 * t_range,  # t0: allow it to shift slightly outside
+#             0.5 * t_range  # fwhm_irf: shouldn’t be broader than the total time window
+#         ]
+
+#         try:
+#             popt, pcov = curve_fit(
+#                 sech2, xdata, counts, p0=guess,
+#                 bounds=(lower_bounds, upper_bounds),
+#                 sigma=errors, absolute_sigma=True
+#             )
+#         except RuntimeError as e:
+#             print("Fit failed:", e)
+#             return
+        
+        
+#         #Parametri da preimpostare :A (l'ampiezza dell'impulso ottico), b, fwhm_pulse, t0, fwhm_irf
+        
+#         plt.legend(fontsize=15, loc='best', frameon=True)
+        
+#         plt.xlabel('Time [ps]')
+#         plt.ylabel('Counts')
+        
+#         plt.show()
+        
+#         # print(f'IL VALORE DELLA VARIABILE "INDICE" È ATTUALMENTE : {INDICE}')
+        
+#         INDICE += 1
+#         print('\n\n\n')
+        
