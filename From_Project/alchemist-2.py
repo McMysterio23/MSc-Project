@@ -1426,6 +1426,11 @@ for i in range(4):
         eArr = err_all_hists[:, i]
         peak_index = np.argmax(arr)
         peak_position = positions[peak_index]
+        
+        #Centering everything in t=0
+        positions -= peak_position
+        peak_position -= peak_position
+        
         peak_value = arr[peak_index]
         
         # Define fit window
@@ -1437,11 +1442,6 @@ for i in range(4):
         selected_Counts = arr[mask]
         selected_errors = eArr[mask]
         
-        # Plot original histogram
-        plt.figure(figsize=(15, 8))
-        plt.errorbar(positions, arr, yerr=eArr, fmt='.', color='grey', capsize=2, ecolor='orange', label='Data')
-        plt.xlim(peak_position - 80, peak_position + 80)
-        plt.grid(True)
         
         # --- Fit with sech² only
         print('\n\nAs follows the results of the sech² fit:\n')
@@ -1461,7 +1461,7 @@ for i in range(4):
         # plt.plot(selected_positions, sech2(selected_positions, A0, b0, df_sech2.loc[2]["Value"], t0),
                  # color='green', label=r"Sech$^2$ Fit")
 
-        # --- Fit convolved model
+        # --- Convoluted Model  -----> to be upgraded to the implementation via np.quad()
         def convolved_model(x, A, b, fwhm_pulse, t0, fwhm_irf):
             pulse = sech2_fwhm(x, A, 0, fwhm_pulse, t0)  # no baseline
             irf = gaussian(x, 1, 0, fwhm_irf, t0)  # unit amplitude, centered at t0
@@ -1552,6 +1552,11 @@ for i in range(4):
         print(fit_result)
         
         print(f'\n\nReduced Chi squared currently of {red_chi2}')
+        
+        # Plot original histogram
+        plt.figure(figsize=(15, 8))
+        plt.errorbar(positions , arr, yerr=eArr, fmt='.', color='grey', capsize=2, ecolor='orange', label='Data')
+        plt.grid(True)
 
         # Plot IRF and convolved fit
         irf_curve = gaussian(selected_positions, 1, 0, popt[4], popt[3])
@@ -1562,15 +1567,18 @@ for i in range(4):
         plt.plot(selected_positions, convolved_model(selected_positions, *popt),
                  '-', color='red', label="Convolved Fit")
         
-        optical_pulse = sech2_fwhm(selected_positions, popt[0], 0, popt[2], popt[3])
-        plt.plot(selected_positions, optical_pulse + popt[1], '--', color='blue', label='Optical Pulse (Sech²)')
+        optical_pulse = sech2_fwhm(selected_positions , popt[0], 0, popt[2], popt[3])
+        plt.plot(selected_positions , optical_pulse + popt[1], '--', color='blue', label='Optical Pulse (Sech²)')
         
-        plt.ylim(-25, peak_value + 120)
+        plt.xlim(peak_position - 80, peak_position + 80)
+        plt.ylim(-25, peak_value + 3600)
         
         plt.xlabel('Time [ps]')
         plt.ylabel('Counts')
         plt.legend(fontsize=14)
         plt.title(f"Fit for Histogram {i+1}")
+        plt.grid(True)
+        plt.tight_layout()
         plt.show()
 
         INDICE += 1
