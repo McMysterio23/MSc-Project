@@ -1444,7 +1444,7 @@ for i in range(4):
         
         
         # --- Fit with sech² only
-        print('\n\nAs follows the results of the sech² fit:\n')
+        print('\n\nAs follows the results of the sech² fit of the TCSPC Histogram:\n')
         df_sech2 = Do_Sech2_Fit(selected_positions, selected_Counts, selected_errors, PrintParams=True, DebugPrints=Printed_Infos)
         Dataframe_SecSquaredfits.append(df_sech2)
 
@@ -1483,13 +1483,13 @@ for i in range(4):
             0,              # b (baseline)
             0.002,           # fwhm_pulse ≥ 20 fs
             t_min - 0.1 * t_range,  # t0: small shift allowed
-            5.0             # fwhm_irf ≥ 5 ps, conservative lower bound
+            0             # fwhm_irf ≥ 5 ps, conservative lower bound
         ]
         
         upper_bounds = [
             np.inf,         # A
             np.inf,         # b
-            25,          # fwhm_pulse ≤ 200 fs
+            100,          # fwhm_pulse ≤ 200 fs
             t_max + 0.1 * t_range,  # t0
             200.0           # fwhm_irf ≤ 200 ps
         ]
@@ -1548,10 +1548,10 @@ for i in range(4):
         
         Dataframe_ModelFits.append(fit_result)
         
-        print('\n\nThe results of the fit of the datapoints with the convoluted model are : \n\n')
+        print('\n\nAs follows the results of the datapoints fit with the convoluted model : \n\n')
         print(fit_result)
         
-        print(f'\n\nReduced Chi squared currently of {red_chi2}')
+        # print(f'\n\nReduced Chi squared currently of {red_chi2}')
         
         # Plot original histogram
         plt.figure(figsize=(15, 8))
@@ -1564,6 +1564,8 @@ for i in range(4):
         irf_curve_scaled = irf_curve * popt[0]  # scale to pulse amplitude
 
         plt.plot(selected_positions, irf_curve_scaled + popt[1], '--', color='purple', label="IRF (Gaussian)")
+        # plt.plot(selected_positions, irf_curve + popt[1], '--', color='purple', label="IRF (Gaussian)")
+
         plt.plot(selected_positions, convolved_model(selected_positions, *popt),
                  '-', color='red', label="Convolved Fit")
         
@@ -1580,111 +1582,31 @@ for i in range(4):
         plt.grid(True)
         plt.tight_layout()
         plt.show()
-
+        
         INDICE += 1
         print("\n\n")
 
 
-# %% 
+# %% Pulse Broadening Calculator
 
-# for i in range(4):
+def GVD_PulseBroadening_Sech2Shape(INPUT_FWHM, CableLength):
+    """
+    Prints Out pulse Broadening that changes first argument 'INPUT_FWHM' inserted in [fs], into a broader value due to GVD inside the fiber
+    """
+    beta_2 = 38.3 # [ps^2 / km]
+    beta_2_fskm = beta_2 * 1e6 #[fs^2 / km]
+    # tau_0 = 56.82*1e-15 # [fs]
+    tau_0 = (INPUT_FWHM / 1.76) #[fs]
     
-#     if((i == 0) | (i == 2)):
-        
-#         print(f"The figure {i} plot belongs to the hist{i+1} Histogram")
-        
-#         # Find index of the maximum value
-#         peak_index = np.argmax(all_hists[:, i])
-        
-#         # Find the position (bin center) corresponding to the peak
-#         peak_position = positions[peak_index]
-#         arr = all_hists[:, i]
-#         eArr = err_all_hists[:, i]
-#         peak_value = arr[peak_index]
-        
-#         print(f"Peak at position: {peak_position}, with value: {peak_value}")
-        
-        
-#         #Creating a proper mask
-#         Fit_Distance = 180
-#         left = peak_position - Fit_Distance
-#         right = peak_position + Fit_Distance
-#         mask = (positions > left) & (positions < right)
-        
-#         selected_positions = positions[mask]
-#         selected_Counts = arr[mask]
-#         selected_errors = eArr[mask]
-        
-        
-#         #Plot 
-#         plt.figure(figsize=(15,8))
-#         plt.errorbar(positions, all_hists[:, i], yerr = err_all_hists[:, i], fmt = '.', color='grey', capsize=2, ecolor = 'orange', label = 'Data Points')
-#         #plt.axhline(peak_value, color = 'red')
-#         #plt.axvline(left, ls= '--', color = 'purple', label = 'Left Boundary')
-#         #plt.axvline(right, ls = '-.', color = 'purple', label = 'Right Boundary')
-        
-#         plt.xlim(peak_position - 80, peak_position + 80)
-#         plt.grid(True)
-#         # plt.show()
-        
-        
-        
-#         print('\n\nAs follows the results of the sech² fit:\n')
-#         Dataframe_SecSquaredfits.append(Do_Sech2_Fit(selected_positions, selected_Counts, selected_errors, PrintParams=True, DebugPrints=Printed_Infos))
-        
-        
-#         plt.plot(selected_positions, sech2(selected_positions, Dataframe_SecSquaredfits[INDICE].loc[0]["Value"],
-#                                               Dataframe_SecSquaredfits[INDICE].loc[1]["Value"],
-#                                               Dataframe_SecSquaredfits[INDICE].loc[2]["Value"],
-#                                               Dataframe_SecSquaredfits[INDICE].loc[3]["Value"]), color = 'green', label = r"TCSPC $Sech^{2}$ fit")
-        
-#         # Initial parameter guess
-#         A0 = Dataframe_SecSquaredfits[INDICE].loc[0]["Value"]
-#         b0 = Dataframe_SecSquaredfits[INDICE].loc[1]["Value"]
-#         tau0 = 7
-#         t0 = Dataframe_SecSquaredfits[INDICE].loc[3]["Value"]
-#         guess = [A0, b0, abs(tau0), t0]
+    
+    Ld_km = (tau_0**2) / (beta_2_fskm)  
+    Ld_cm = Ld_km * 1e5
+    
+    return (tau_0 * 1e-15 * np.sqrt(1+(CableLength/Ld_cm)**2)) * 1.76 * 1e+12
 
-#                # Lower bounds
-#         lower_bounds = [
-#             0,          # A: Amplitude ≥ 0
-#             0,          # b: Baseline ≥ 0
-#             1e-3,       # fwhm_pulse: at least 1 fs (avoid zero width)
-#             t_min - 0.2 * t_range,  # t0: slightly outside measured window
-#             1e-3        # fwhm_irf: IRF width ≥ 1 fs
-#         ]
-        
-#         # Upper bounds
-#         upper_bounds = [
-#             np.inf,     # A: Amplitude unbounded
-#             np.inf,     # b: Baseline unbounded
-#             t_range,    # fwhm_pulse: max width can't exceed the time window
-#             t_max + 0.2 * t_range,  # t0: allow it to shift slightly outside
-#             0.5 * t_range  # fwhm_irf: shouldn’t be broader than the total time window
-#         ]
+print('The FWHM of the optical pulses after ~15m of HP780 fiber is :', GVD_PulseBroadening_Sech2Shape(100, 1500), '[ps]')
 
-#         try:
-#             popt, pcov = curve_fit(
-#                 sech2, xdata, counts, p0=guess,
-#                 bounds=(lower_bounds, upper_bounds),
-#                 sigma=errors, absolute_sigma=True
-#             )
-#         except RuntimeError as e:
-#             print("Fit failed:", e)
-#             return
-        
-        
-#         #Parametri da preimpostare :A (l'ampiezza dell'impulso ottico), b, fwhm_pulse, t0, fwhm_irf
-        
-#         plt.legend(fontsize=15, loc='best', frameon=True)
-        
-#         plt.xlabel('Time [ps]')
-#         plt.ylabel('Counts')
-        
-#         plt.show()
-        
-#         # print(f'IL VALORE DELLA VARIABILE "INDICE" È ATTUALMENTE : {INDICE}')
-        
-#         INDICE += 1
-#         print('\n\n\n')
-        
+# %% Creation of the plot for a single histogram with jointed also model predictions
+
+
+
