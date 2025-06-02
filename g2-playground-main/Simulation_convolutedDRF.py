@@ -35,7 +35,7 @@ power = 0.85*1e-11 # W
 wavelength = 935e-9 # nm
 brightness = power * wavelength / (6.6e-34 * 3e8)
 
-timing_jitter_detector = 0.150  # ns
+timing_jitter_detector = 0.025  # ns
 timing_jitter_card = 0.025     # ns
 timing_jitter = np.sqrt(timing_jitter_card**2+timing_jitter_detector**2)
 
