@@ -22,6 +22,11 @@ file_list = [f.name for f in folder_path.iterdir() if f.is_file() and f.suffix =
 names = [file_list[0], file_list[1], file_list[2], file_list[3], file_list[4], file_list[5], file_list[6], file_list[7],
          file_list[8], file_list[9]]
 
+PATH_TSUNAMI = Path('ModeLockedLaser/NewBeginning')
+folder_path_tsu = PATH_TSUNAMI
+file_list_TSUNAMI_bin = [f.name for f in folder_path_tsu.iterdir() if f.is_file() and f.suffix == '.bin']
+names_tsu = [file_list_TSUNAMI_bin[0], file_list_TSUNAMI_bin[1], file_list_TSUNAMI_bin[2]]
+
 """
 At the moment there is in the data folder this set of files:
     
@@ -1593,7 +1598,9 @@ def GVD_PulseBroadening_Sech2Shape(INPUT_FWHM, CableLength):
     """
     Prints Out pulse Broadening that changes first argument 'INPUT_FWHM' inserted in [fs], into a broader value due to GVD inside the fiber
     """
-    beta_2 = 38.3 # [ps^2 / km]
+    # beta_2 = 38.3 # [ps^2 / km]
+    # beta_2 = 43 # [ps^2 / km]
+    beta_2 = 23 # [ps^2 / km]
     beta_2_fskm = beta_2 * 1e6 #[fs^2 / km]
     # tau_0 = 56.82*1e-15 # [fs]
     tau_0 = (INPUT_FWHM / 1.76) #[fs]
