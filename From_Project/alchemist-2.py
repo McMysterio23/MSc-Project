@@ -1019,12 +1019,18 @@ plt.show()
 
 # %% Read CSV files for the mode locked laser
 
+"""
+For internal reference if you're analyzing the files of the last take this is the meaning of these histograms:
+  Histogram 1 : Start as Sync trigger, Stop as Detection from detector 2 (TCSPC)
+  Histogram 2 : Start as Sync Trigger, Stop as Detection from detector 3 (TCSPC)
+  Histogram 3 : HBT detector 2 vs detector 3
 
+"""
 
-PATH2 = Path("ModeLockedLaser")
+PATH2 = Path("ModeLockedLaser/TimeTrace_Andrea_20250604")
 flder_path = PATH2
 list_files = [f.name for f in flder_path.iterdir() if f.is_file() and f.suffix == '.csv']
-names = [list_files[0], list_files[1], list_files[2], list_files[3], list_files[4]]
+names = [list_files[0]]  #, list_files[1], list_files[2], list_files[3], list_files[4]]
 
 # Load the CSV file with semicolon separator
 
@@ -1065,9 +1071,10 @@ INDICE = 0
 Printed_Infos = True
 
 
-for i in range(4):
+for i in range(2):
     
-    if((i == 0) | (i == 2)):
+    # if((i == 0) | (i == 2)):
+    if(True):
         
         print(f"The figure {i} plot belongs to the hist{i+1} Histogram")
         
@@ -1084,7 +1091,7 @@ for i in range(4):
         
         
         #Creating a proper mask
-        Fit_Distance = 180
+        Fit_Distance = 100
         left = peak_position - Fit_Distance
         right = peak_position + Fit_Distance
         mask = (positions > left) & (positions < right)
@@ -1092,6 +1099,21 @@ for i in range(4):
         selected_positions = positions[mask]
         selected_Counts = arr[mask]
         selected_errors = eArr[mask]
+        
+        valid_mask = (
+            ~np.isnan(selected_positions) &
+            ~np.isnan(selected_Counts) &
+            ~np.isnan(selected_errors)
+        )
+        selected_positions = selected_positions[valid_mask]
+        selected_Counts = selected_Counts[valid_mask]
+        selected_errors = selected_errors[valid_mask]
+        
+        
+        if np.any(selected_errors <= 0):
+            print("Warning: Fixing invalid error values...")
+            nonzero_min = np.min(selected_errors[selected_errors > 0]) if np.any(selected_errors > 0) else 1.0
+            selected_errors[selected_errors <= 0] = nonzero_min * 1e-2
         
         #Plot the histogram, including an horizontal line @ the maximum
         plt.figure(figsize=(15,8))
@@ -1104,13 +1126,17 @@ for i in range(4):
         plt.grid(True)
         # plt.show()
         
+        
+        
+        
+        
         print('\n\nAs follows the results of the gaussian fit :\n')
         Dataframe_Gaussianfits.append(Do_Gauss_Fit_v5(selected_positions, selected_Counts, selected_errors, PrintParams=True, DebugPrints=Printed_Infos))
         
         
         
-        print('\n\nAs follows the results of the Lorentzian fit\n')
-        Dataframe_Lorentzianfits.append(Do_Lorentzian_Fit(selected_positions, selected_Counts, selected_errors, PrintParams=True, View=False, DebugPrints=Printed_Infos))
+        # print('\n\nAs follows the results of the Lorentzian fit\n')
+        # Dataframe_Lorentzianfits.append(Do_Lorentzian_Fit(selected_positions, selected_Counts, selected_errors, PrintParams=True, View=False, DebugPrints=Printed_Infos))
         
         
         print('\n\nAs follows the results of the sech² fit:\n')
@@ -1124,10 +1150,10 @@ for i in range(4):
                                               Dataframe_Gaussianfits[INDICE].loc[2]["Value"],
                                               Dataframe_Gaussianfits[INDICE].loc[3]["Value"]), color = 'red', label = "Gaussian fit", ls = '-.')
        
-        plt.plot(selected_positions, lorentzian(selected_positions, Dataframe_Lorentzianfits[INDICE].loc[0]["Value"],
-                                              Dataframe_Lorentzianfits[INDICE].loc[1]["Value"],
-                                              Dataframe_Lorentzianfits[INDICE].loc[2]["Value"],
-                                              Dataframe_Lorentzianfits[INDICE].loc[3]["Value"]), color = '#003399', label = "Lorentzian fit", ls = '-.')
+        # plt.plot(selected_positions, lorentzian(selected_positions, Dataframe_Lorentzianfits[INDICE].loc[0]["Value"],
+        #                                       Dataframe_Lorentzianfits[INDICE].loc[1]["Value"],
+        #                                       Dataframe_Lorentzianfits[INDICE].loc[2]["Value"],
+        #                                       Dataframe_Lorentzianfits[INDICE].loc[3]["Value"]), color = '#003399', label = "Lorentzian fit", ls = '-.')
         
         
         plt.plot(selected_positions, sech2(selected_positions, Dataframe_SecSquaredfits[INDICE].loc[0]["Value"],
@@ -1379,12 +1405,18 @@ def model(t, pulse_fwhm, waveguide_fwhm, irf_fwhm):
 
 # %% Attempt to deconvolve via numerical simulations 
 
-from scipy.optimize import curve_fit
+"""
+For internal reference if you're analyzing the files of the last take this is the meaning of these histograms:
+  Histogram 1 : Start as Sync trigger, Stop as Detection from detector 2 (TCSPC)
+  Histogram 2 : Start as Sync Trigger, Stop as Detection from detector 3 (TCSPC)
+  Histogram 3 : HBT detector 2 vs detector 3
 
-PATH2 = Path("ModeLockedLaser")
+"""
+from scipy.optimize import curve_fit
+PATH2 = Path("ModeLockedLaser/TimeTrace_Andrea_20250604")
 flder_path = PATH2
 list_files = [f.name for f in flder_path.iterdir() if f.is_file() and f.suffix == '.csv']
-names = [list_files[0], list_files[1], list_files[2], list_files[3], list_files[4]]
+names = [list_files[0]]  #, list_files[1], list_files[2], list_files[3], list_files[4]]
 
 # Load the CSV file with semicolon separator
 
@@ -1408,6 +1440,8 @@ all_hists = df.iloc[:, 1:5].values
 err_all_hists = np.sqrt(all_hists)
 
 
+
+
 Dataframe_ModelFits = []
 Dataframe_SecSquaredfits = []
 
@@ -1422,8 +1456,9 @@ def sech2_fwhm(x, A, b, fwhm, t0):
 
 
 
-for i in range(4):
-    if i in [0, 2]:
+for i in range(2):
+    # if i in [0, 2]:
+        
         print(f"The figure {i} plot belongs to the hist{i+1} Histogram")
         
         # Extract data
@@ -1439,7 +1474,7 @@ for i in range(4):
         peak_value = arr[peak_index]
         
         # Define fit window
-        Fit_Distance = 180
+        Fit_Distance = 100
         left, right = peak_position - Fit_Distance, peak_position + Fit_Distance
         mask = (positions > left) & (positions < right)
         
