@@ -1635,7 +1635,7 @@ def GVD_PulseBroadening_Sech2Shape(INPUT_FWHM, CableLength):
     """
     # beta_2 = 38.3 # [ps^2 / km]
     # beta_2 = 43 # [ps^2 / km]
-    beta_2 = 23 # [ps^2 / km]
+    beta_2 = 34.7 # [ps^2 / km]
     beta_2_fskm = beta_2 * 1e6 #[fs^2 / km]
     # tau_0 = 56.82*1e-15 # [fs]
     tau_0 = (INPUT_FWHM / 1.76) #[fs]
@@ -1646,9 +1646,167 @@ def GVD_PulseBroadening_Sech2Shape(INPUT_FWHM, CableLength):
     
     return (tau_0 * 1e-15 * np.sqrt(1+(CableLength/Ld_cm)**2)) * 1.76 * 1e+12
 
-print('The FWHM of the optical pulses after ~15m of HP780 fiber is :', GVD_PulseBroadening_Sech2Shape(100, 1500), '[ps]')
+print('The FWHM of the optical pulses after ~15m of HP780 fiber is :', GVD_PulseBroadening_Sech2Shape(50.3, 1500), '[ps]')
+# %% Part2
+import numpy as np
 
-# %% Creation of the plot for a single histogram with jointed also model predictions
+def GVD_780HP_Sech2Broadening(input_fwhm_fs, fiber_length_cm, wavelength_nm):
+    """
+    Estimates output pulse FWHM [ps] after propagation through Thorlabs 780HP fiber,
+    accounting for GVD at specified wavelength.
+    
+    Parameters:
+    - input_fwhm_fs : float
+        Input pulse FWHM duration in femtoseconds [fs]
+    - fiber_length_cm : float
+        Fiber length in centimeters [cm]
+    - wavelength_nm : float
+        Wavelength of operation in nanometers [nm]
+        
+    Returns:
+    - output_fwhm_ps : float
+        Output pulse FWHM in picoseconds [ps]
+    """
+    # Approximate wavelength-dependent beta_2 [ps^2/km]
+    if wavelength_nm <= 850:
+        beta_2 = 38.3
+    elif wavelength_nm >= 950:
+        beta_2 = 23.0
+    else:
+        # Linear interpolation between 850 and 950 nm
+        beta_2 = 38.3 + (23.0 - 38.3) * (wavelength_nm - 850) / (950 - 850)
+    
+    beta_2_fs2_per_km = beta_2 * 1e6  # convert to fs^2/km
 
+    tau_0_fs = input_fwhm_fs / 1.76
+    Ld_km = tau_0_fs**2 / beta_2_fs2_per_km
+    Ld_cm = Ld_km * 1e5
+
+    output_tau_fs = tau_0_fs * np.sqrt(1 + (fiber_length_cm / Ld_cm)**2)
+    output_fwhm_fs = output_tau_fs * 1.76
+    output_fwhm_ps = output_fwhm_fs / 1000  # convert fs to ps
+
+    return output_fwhm_ps
+
+result = GVD_780HP_Sech2Broadening(45, 1500, 897)
+print(f"Output FWHM: {result:.3f} ps")
+
+# %% Following WL new orders : HUGE Retreat to understand better what we're doing !!!
+
+
+"""
+PLEASE REFER TO PLOTS_TSUNAMI FOLDER AND RUN THE PROGRAM THAT YOU FIND INSIDE THERE TO RUN THIS PART OF THE SCRIPT !!
+HERE YOU WON'T FIND THE LATEST VERSION AVAILABLE !!!'
+
+For internal reference if you're analyzing the files of the last take this is the meaning of these histograms:
+  Histogram 1 : Start as Sync trigger, Stop as Detection from detector 2 (TCSPC)
+  Histogram 2 : Start as Sync Trigger, Stop as Detection from detector 3 (TCSPC)
+  Histogram 3 : HBT detector 2 vs detector 3
+
+"""
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+from scipy.interpolate import interp1d
+from pathlib import Path
+
+# --- File setup ---
+PATH2 = Path("ModeLockedLaser/TimeTrace_Andrea_20250604")
+flder_path = PATH2
+list_files = [f.name for f in flder_path.iterdir() if f.is_file() and f.suffix == '.csv']
+names = [list_files[0]]
+
+# --- Load data ---
+F_Index = 0
+df = pd.read_csv(PATH2 / names[F_Index], sep=";") 
+
+# --- Extract bin centers and histograms ---
+positions = df.iloc[:, 0].values
+hist1 = df.iloc[:, 1].values
+hist2 = df.iloc[:, 2].values
+hist3 = df.iloc[:, 3].values
+
+# --- Errors from shot noise ---
+ehist1 = np.sqrt(hist1)
+ehist2 = np.sqrt(hist2)
+ehist3 = np.sqrt(hist3)
+
+# --- Peak detection ---
+peak_index1 = np.argmax(hist1)
+peak_index2 = np.argmax(hist2)
+peak_index3 = np.argmax(hist3)
+
+peak_position1 = positions[peak_index1]
+peak_position2 = positions[peak_index2]
+peak_position3 = positions[peak_index3]
+
+# --- Center time axes ---
+positions1 = positions.copy() - peak_position1
+positions2 = positions.copy() - peak_position2
+positions3 = positions.copy() - peak_position3
+
+# --- Function to compute FWHM and return FWHM info ---
+def compute_fwhm(pos, hist):
+    interp_func = interp1d(pos, hist, kind='cubic', fill_value="extrapolate")
+    peak_height = np.max(hist)
+    half_max = peak_height / 2.0
+    x_fine = np.linspace(pos[0], pos[-1], 10000)
+    y_fine = interp_func(x_fine)
+    indices = np.where(np.diff(np.sign(y_fine - half_max)))[0]
+    if len(indices) >= 2:
+        x_left = x_fine[indices[0]]
+        x_right = x_fine[indices[-1]]
+        fwhm = x_right - x_left
+        return x_fine, y_fine, x_left, x_right, half_max, fwhm
+    else:
+        return None, None, None, None, None, None
+
+# --- Compute FWHM for each histogram ---
+x_fine1, y_fine1, xL1, xR1, hmax1, fwhm1 = compute_fwhm(positions1, hist1)
+x_fine2, y_fine2, xL2, xR2, hmax2, fwhm2 = compute_fwhm(positions2, hist2)
+x_fine3, y_fine3, xL3, xR3, hmax3, fwhm3 = compute_fwhm(positions3, hist3)
+
+# --- Plot ---
+plt.figure(figsize=(18, 8))
+
+# Histogram 1
+plt.errorbar(positions1, hist1, yerr=ehist1, fmt='*', color='black',
+             capsize=2, ecolor='orange', label='TCSPC SYNC vs DET2')
+plt.plot(x_fine1, y_fine1, 'k--', alpha=0.5)
+plt.axhline(hmax1, color='black', linestyle='--', alpha=0.25)
+plt.axvline(xL1, color='black', linestyle='--', alpha=0.25)
+plt.axvline(xR1, color='black', linestyle='--', alpha=0.25)
+plt.hlines(hmax1, xL1, xR1, colors='black', linewidth=2,
+           label=f'FWHM Sync vs Det2 = {fwhm1:.2f}', alpha=0.7)
+
+# Histogram 2
+plt.errorbar(positions2, hist2, yerr=ehist2, fmt='.', color='brown',
+             capsize=2, ecolor='orange', label='TCSPC SYNC vs DET3')
+plt.plot(x_fine2, y_fine2, 'brown', linestyle='--', alpha=0.5)
+plt.axhline(hmax2, color='brown', linestyle='--', alpha=0.25)
+plt.axvline(xL2, color='brown', linestyle='--', alpha=0.25)
+plt.axvline(xR2, color='brown', linestyle='--', alpha=0.25)
+plt.hlines(hmax2, xL2, xR2, colors='brown', linewidth=2,
+           label=f'FWHM Sync vs Det3 = {fwhm2:.2f}', alpha=0.7)
+
+# Histogram 3
+plt.errorbar(positions3, hist3, yerr=ehist3, fmt='.', color='green',
+             capsize=2, ecolor='orange', label='HBT Detector2 vs Detector3')
+plt.plot(x_fine3, y_fine3, 'green', linestyle='--', alpha=0.5)
+plt.axhline(hmax3, color='green', linestyle='--', alpha=0.25)
+plt.axvline(xL3, color='green', linestyle='--', alpha=0.25)
+plt.axvline(xR3, color='green', linestyle='--', alpha=0.25)
+plt.hlines(hmax3, xL3, xR3, colors='green', linewidth=2,
+           label=f'FWHM HBT = {fwhm3:.2f}', alpha=0.7)
+
+# --- Plot setup ---
+plt.xlim(-400, +700)
+plt.ylabel("Counts (a.u.)")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
 
 
