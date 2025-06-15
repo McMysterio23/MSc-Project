@@ -4,6 +4,15 @@ Created on Wed Jun 11 16:16:17 2025
 
 @author: Maccarinelli
 """
+
+"""
+This script is designed to plot (IN LINEAR SCALE !!!!)the 4 histograms coming from the Time-Controller IDQuantique1000.
+Keep in mind that this script has to be executed in the same folder where the file is being saved.
+
+
+
+"""
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -26,22 +35,27 @@ positions = df.iloc[:, 0].values
 hist1 = df.iloc[:, 1].values
 hist2 = df.iloc[:, 2].values
 hist3 = df.iloc[:, 3].values
+hist4 = df.iloc[:, 4].values
 
 ehist1 = np.sqrt(hist1)
 ehist2 = np.sqrt(hist2)
 ehist3 = np.sqrt(hist3)
+ehist4 = np.sqrt(hist4)
 
 peak_index1 = np.argmax(hist1)
 peak_index2 = np.argmax(hist2)
 peak_index3 = np.argmax(hist3)
+peak_index4 = np.argmax(hist4)
 
 peak_position1 = positions[peak_index1]
 peak_position2 = positions[peak_index2]
 peak_position3 = positions[peak_index3]
+peak_position4 = positions[peak_index4]
 
 positions1 = positions.copy() - peak_position1
 positions2 = positions.copy() - peak_position2
 positions3 = positions.copy() - peak_position3
+positions4 = positions.copy() - peak_position4
 
 def compute_fwhm(pos, hist):
     interp_func = interp1d(pos, hist, kind='cubic', fill_value="extrapolate")
@@ -61,6 +75,7 @@ def compute_fwhm(pos, hist):
 x_fine1, y_fine1, xL1, xR1, hmax1, fwhm1 = compute_fwhm(positions1, hist1)
 x_fine2, y_fine2, xL2, xR2, hmax2, fwhm2 = compute_fwhm(positions2, hist2)
 x_fine3, y_fine3, xL3, xR3, hmax3, fwhm3 = compute_fwhm(positions3, hist3)
+x_fine4, y_fine4, xL4, xR4, hmax4, fwhm4 = compute_fwhm(positions4, hist4)
 
 plt.figure(figsize=(18, 8))
 
@@ -97,6 +112,17 @@ plt.axvline(xR3, color='green', linestyle='--', alpha=0.25)
 plt.hlines(hmax3, xL3, xR3, colors='green', linewidth=2,
            label=f'FWHM HBT = {fwhm3:.2f}', alpha=0.7)
 plt.text(0, 2.81e+04, f'{fwhm3:.2f}ps', color='Green', ha='center')
+
+# Histogram 4
+plt.errorbar(positions4, hist4, yerr=ehist4, fmt='.', color='blue',
+             capsize=2, ecolor='orange', label='HBT Detector2 vs Detector3')
+plt.plot(x_fine4, y_fine4, 'blue', linestyle='--', alpha=0.5)
+plt.axhline(hmax4, color='blue', linestyle='--', alpha=0.25)
+plt.axvline(xL4, color='blue', linestyle='--', alpha=0.25)
+plt.axvline(xR4, color='blue', linestyle='--', alpha=0.25)
+plt.hlines(hmax4, xL4, xR4, colors='blue', linewidth=2,
+           label=f'FWHM HBT = {fwhm4:.2f}', alpha=0.7)
+plt.text(0, 2.81e+04, f'{fwhm4:.2f}ps', color='blue', ha='center')
 
 
 plt.axvline(174.4, color='brown', linestyle='-.', alpha=0.85, label = 'TCSPC DET3 Second Sidepeak')
