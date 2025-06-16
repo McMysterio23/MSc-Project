@@ -4,15 +4,6 @@ Created on Wed Jun 11 16:16:17 2025
 
 @author: Maccarinelli
 """
-
-"""
-This script is designed to plot (IN LINEAR SCALE !!!!)the 4 histograms coming from the Time-Controller IDQuantique1000.
-Keep in mind that this script has to be executed in the same folder where the file is being saved.
-
-
-
-"""
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -79,27 +70,27 @@ x_fine4, y_fine4, xL4, xR4, hmax4, fwhm4 = compute_fwhm(positions4, hist4)
 
 plt.figure(figsize=(18, 8))
 
-# Histogram 1
-plt.errorbar(positions1, hist1, yerr=ehist1, fmt='*', color='black',
-             capsize=2, ecolor='orange', label='TCSPC SYNC vs DET2')
-plt.plot(x_fine1, y_fine1, 'k--', alpha=0.5)
-plt.axhline(hmax1, color='black', linestyle='--', alpha=0.25)
-plt.axvline(xL1, color='black', linestyle='--', alpha=0.25)
-plt.axvline(xR1, color='black', linestyle='--', alpha=0.25)
-plt.hlines(hmax1, xL1, xR1, colors='black', linewidth=2,
-           label=f'FWHM Sync vs Det2 = {fwhm1:.2f}', alpha=0.7)
-plt.text(0, 4.65e+03, f'{fwhm1:.2f}ps', color='black', ha='center')
+# # Histogram 1
+# plt.errorbar(positions1, hist1, yerr=ehist1, fmt='*', color='black',
+#              capsize=2, ecolor='orange', label='TCSPC SYNC vs DET2')
+# plt.plot(x_fine1, y_fine1, 'k--', alpha=0.5)
+# plt.axhline(hmax1, color='black', linestyle='--', alpha=0.25)
+# plt.axvline(xL1, color='black', linestyle='--', alpha=0.25)
+# plt.axvline(xR1, color='black', linestyle='--', alpha=0.25)
+# plt.hlines(hmax1, xL1, xR1, colors='black', linewidth=2,
+#            label=f'FWHM Sync vs Det2 = {fwhm1:.2f}', alpha=0.7)
+# plt.text(0, 4.65e+03, f'{fwhm1:.2f}ps', color='black', ha='center')
 
-# Histogram 2
-plt.errorbar(positions2, hist2, yerr=ehist2, fmt='.', color='brown',
-             capsize=2, ecolor='orange', label='TCSPC SYNC vs DET3')
-plt.plot(x_fine2, y_fine2, 'brown', linestyle='--', alpha=0.5)
-plt.axhline(hmax2, color='brown', linestyle='--', alpha=0.25)
-plt.axvline(xL2, color='brown', linestyle='--', alpha=0.25)
-plt.axvline(xR2, color='brown', linestyle='--', alpha=0.25)
-plt.hlines(hmax2, xL2, xR2, colors='brown', linewidth=2,
-           label=f'FWHM Sync vs Det3 = {fwhm2:.2f}', alpha=0.7)
-plt.text(0, 7.5e+03, f'{fwhm2:.2f}ps', color='brown', ha='center')
+# # Histogram 2
+# plt.errorbar(positions2, hist2, yerr=ehist2, fmt='.', color='brown',
+#              capsize=2, ecolor='orange', label='TCSPC SYNC vs DET3')
+# plt.plot(x_fine2, y_fine2, 'brown', linestyle='--', alpha=0.5)
+# plt.axhline(hmax2, color='brown', linestyle='--', alpha=0.25)
+# plt.axvline(xL2, color='brown', linestyle='--', alpha=0.25)
+# plt.axvline(xR2, color='brown', linestyle='--', alpha=0.25)
+# plt.hlines(hmax2, xL2, xR2, colors='brown', linewidth=2,
+#            label=f'FWHM Sync vs Det3 = {fwhm2:.2f}', alpha=0.7)
+# plt.text(0, 7.5e+03, f'{fwhm2:.2f}ps', color='brown', ha='center')
 
 
 # Histogram 3
@@ -110,24 +101,37 @@ plt.axhline(hmax3, color='green', linestyle='--', alpha=0.25)
 plt.axvline(xL3, color='green', linestyle='--', alpha=0.25)
 plt.axvline(xR3, color='green', linestyle='--', alpha=0.25)
 plt.hlines(hmax3, xL3, xR3, colors='green', linewidth=2,
-           label=f'FWHM HBT = {fwhm3:.2f}', alpha=0.7)
+           label=f'FWHM HBT Det2 vs Det3 = {fwhm3:.2f}', alpha=0.7)
 plt.text(0, 2.81e+04, f'{fwhm3:.2f}ps', color='Green', ha='center')
 
-# Histogram 4
+#  Histogram 4
 plt.errorbar(positions4, hist4, yerr=ehist4, fmt='.', color='blue',
-             capsize=2, ecolor='orange', label='HBT Detector2 vs Detector3')
+             capsize=2, ecolor='orange', label='HBT Detector3 vs Detector2')
 plt.plot(x_fine4, y_fine4, 'blue', linestyle='--', alpha=0.5)
 plt.axhline(hmax4, color='blue', linestyle='--', alpha=0.25)
 plt.axvline(xL4, color='blue', linestyle='--', alpha=0.25)
 plt.axvline(xR4, color='blue', linestyle='--', alpha=0.25)
 plt.hlines(hmax4, xL4, xR4, colors='blue', linewidth=2,
-           label=f'FWHM HBT = {fwhm4:.2f}', alpha=0.7)
-plt.text(0, 2.81e+04, f'{fwhm4:.2f}ps', color='blue', ha='center')
+           label=f'FWHM HBT Det3 vs Det2= {fwhm4:.2f}', alpha=0.7)
+plt.text(0, 2.51e+04, f'{fwhm4:.2f}ps', color='blue', ha='center')
 
 
-plt.axvline(174.4, color='brown', linestyle='-.', alpha=0.85, label = 'TCSPC DET3 Second Sidepeak')
-plt.axvline(169.8, color='green', linestyle='-.', alpha=0.85, label = 'TCSPC DET2 Second Sidepeak')
-plt.axvline(75.2, color='black', linestyle='-.', alpha=0.85, label = 'HBT Second Sidepeak')
+# #  Histogram 5
+# plt.errorbar(-positions4, hist4, yerr=ehist4, fmt='.', color='purple',
+#              capsize=2, ecolor='orange', label='HBT Detector3 vs Detector2')
+# plt.plot(x_fine4, y_fine4, 'purple', linestyle='--', alpha=0.5)
+# plt.axhline(hmax4, color='purple', linestyle='--', alpha=0.25)
+# plt.axvline(xL4, color='purple', linestyle='--', alpha=0.25)
+# plt.axvline(xR4, color='purple', linestyle='--', alpha=0.25)
+# plt.hlines(hmax4, xL4, xR4, colors='purple', linewidth=2,
+#            label=f'FWHM HBT Det3 vs Det2= {fwhm4:.2f}', alpha=0.7)
+# plt.text(0, 2.51e+04, f'{fwhm4:.2f}ps', color='purple', ha='center')
+
+
+
+# plt.axvline(174.4, color='brown', linestyle='-.', alpha=0.85, label = 'TCSPC DET3 Second Sidepeak')
+# plt.axvline(169.8, color='green', linestyle='-.', alpha=0.85, label = 'TCSPC DET2 Second Sidepeak')
+# plt.axvline(75.2, color='black', linestyle='-.', alpha=0.85, label = 'HBT Second Sidepeak')
 
 plt.xlim(-400, +700)
 
