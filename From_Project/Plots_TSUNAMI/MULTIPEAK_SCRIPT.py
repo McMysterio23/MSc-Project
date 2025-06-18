@@ -23,7 +23,11 @@ from scipy.special import voigt_profile
 from scipy.optimize import curve_fit
 
 def make_wrapped_model(fixed_params):
-    param_names = ["A1", "FWHM_1", "A2", "FWHM_2", "C2", "A3", "FWHM_3", "C3", "A4", "FWHM_4", "C4", "A5", "FWHM_5", "C5", "A6", "FWHM_6", "C6"]
+    param_names = ["A1", "FWHM_1", "A2", "FWHM_2", "C2", "A3", "FWHM_3", "C3", "A4", "FWHM_4", "C4",
+                   "A5", "FWHM_5", "C5",
+                   "A6", "FWHM_6", "C6",
+                   "A7", "FWHM_7", "C7",
+                   "A8", "FWHM_8", "C8"]
 
     def wrapped_model(x, *free_values):
         values = {}
@@ -41,7 +45,9 @@ def make_wrapped_model(fixed_params):
             gaussian(x, values["A3"], 0, values["FWHM_3"], values["C3"])+
             gaussian(x, values["A4"], 0, values["FWHM_4"], values["C4"])+
             gaussian(x, values["A5"], 0, values["FWHM_5"], values["C5"])+
-            gaussian(x, values["A6"], 0, values["FWHM_6"], values["C6"])
+            gaussian(x, values["A6"], 0, values["FWHM_6"], values["C6"])+
+            gaussian(x, values["A7"], 0, values["FWHM_7"], values["C7"])+ 
+            gaussian(x, values["A8"], 0, values["FWHM_8"], values["C8"])
         )
 
     return wrapped_model
@@ -49,7 +55,11 @@ def make_wrapped_model(fixed_params):
 def do_model_fit(bins, counts, errors, PrintParams=False, View=False,
                  fixed_params={}):
     
-    all_params = ["A1", "FWHM_1", "A2", "FWHM_2", "C2", "A3", "FWHM_3", "C3", "A4", "FWHM_4", "C4", "A5", "FWHM_5", "C5", "A6", "FWHM_6", "C6"]
+    all_params = ["A1", "FWHM_1", "A2", "FWHM_2", "C2", "A3", "FWHM_3", "C3", "A4", "FWHM_4", "C4",
+                   "A5", "FWHM_5", "C5",
+                   "A6", "FWHM_6", "C6",
+                   "A7", "FWHM_7", "C7",
+                   "A8", "FWHM_8", "C8"]
     free_params = [p for p in all_params if p not in fixed_params]
 
     # Default initial guesses
@@ -62,15 +72,21 @@ def do_model_fit(bins, counts, errors, PrintParams=False, View=False,
         "A3": 1920.24,
         "FWHM_3":74.8,
         "C3" : -88,
-        "A4": 947.60,
-        "FWHM_4" :120.28,
-        "C4" : -291.99,
+        "A4": 765.11,
+        "FWHM_4" :74.26,
+        "C4" : -314.44,
         "A5": 105,
         "FWHM_5": 96.41,
         "C5": 492.98,
         "A6": 32.43,
         "FWHM_6": 64.58,
-        "C6": -505.76
+        "C6": -505.76,
+        "A7": 429,
+        "FWHM_7": 170,
+        "C7": -250,
+        "A8": 1000,
+        "FWHM_8": 65,
+        "C8": -250
     }
 
     guess = [default_guesses[p] for p in free_params]
@@ -141,7 +157,7 @@ def do_model_fit(bins, counts, errors, PrintParams=False, View=False,
     return fit_results, uncertainties, chi_squared, chi_squared_red
         
     
-# 173
+
 
 # --- Dynamically find path of the current script and look for .csv ---
 current_dir = Path(__file__).resolve().parent
@@ -181,8 +197,9 @@ arr = np.linspace(-1000, 1000, 15000)
 # y4 = y2 + sech2(arr, 3550, 0, 80/1.76, 173)
 
 # Define fixed params outside to reuse in both fit and plotting
-fixed_params = {}
 
+# fixed_params = {"C8":-250}
+fixed_params = {}
 # fixed_params = {
 #     "A1": 51938.32,
 #     "FWHM_1": 72.81,
@@ -214,7 +231,11 @@ fit_results, errors, chi2, red_chi2 = do_model_fit(
 
 
 # Define all parameter names involved in the model
-param_names = ["A1", "FWHM_1", "A2", "FWHM_2", "C2", "A3", "FWHM_3", "C3", "A4", "FWHM_4", "C4", "A5", "FWHM_5", "C5", "A6", "FWHM_6", "C6"]
+param_names = ["A1", "FWHM_1", "A2", "FWHM_2", "C2", "A3", "FWHM_3", "C3", "A4", "FWHM_4", "C4",
+               "A5", "FWHM_5", "C5",
+               "A6", "FWHM_6", "C6",
+               "A7", "FWHM_7", "C7",
+               "A8", "FWHM_8", "C8"]
 
 # Then extract the list of free (non-fixed) parameters
 free_params = [p for p in param_names if p not in fixed_params]
@@ -232,11 +253,13 @@ y3 = gaussian(arr, all_params["A3"], 0, all_params["FWHM_3"], all_params["C3"])
 y4 = gaussian(arr, all_params["A4"], 0, all_params["FWHM_4"], all_params["C4"])
 y5 = gaussian(arr, all_params["A5"], 0, all_params["FWHM_5"], all_params["C5"])
 y6 = gaussian(arr, all_params["A6"], 0, all_params["FWHM_6"], all_params["C6"])
+y7 = gaussian(arr, all_params["A7"], 0, all_params["FWHM_7"], all_params["C7"])
+y8 = gaussian(arr, all_params["A8"], 0, all_params["FWHM_8"], all_params["C8"])
 
 #Plotting
 plt.figure(figsize=(18, 8))
 plt.errorbar(positions3, hist3, yerr=ehist3, fmt='.', color='green',
-             capsize=2, ecolor='orange', label='HBT Detector2 vs Detector3')
+             capsize=2, ecolor='orange', label='HBT Detector2 vs Detector3', markersize = 4)
 
 # Generate model prediction
 model_curve = make_wrapped_model(fixed_params)
@@ -254,14 +277,16 @@ plt.plot(arr, y3, ls='--', color='gray', label='Component: Gaussian 1')
 plt.plot(arr, y4, ls='--', color='yellow', label='Component: Gaussian 2')
 plt.plot(arr, y5, ls='--', color='brown', label='Component: Gaussian 3')
 plt.plot(arr, y6, ls='--', color='black', label='Component: Gaussian 4')
+plt.plot(arr, y7, ls='--', color='#92C6D8', label='Component: Gaussian 5')
+plt.plot(arr, y8, ls='-', color='#8B6AD2', label='Component: Gaussian 6')
 
 #'lightblue'
 
 plt.xlim(-580, 580)
 
 # # Now safe to apply log scale!
-plt.yscale('log')
-plt.ylim(0.29, max(hist3) * 1.8)
+# plt.yscale('log')
+# plt.ylim(0.29, max(hist3) * 1.8)
 
 
 plt.ylabel("Counts (a.u.)")

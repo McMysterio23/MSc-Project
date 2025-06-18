@@ -70,27 +70,27 @@ x_fine4, y_fine4, xL4, xR4, hmax4, fwhm4 = compute_fwhm(positions4, hist4)
 
 plt.figure(figsize=(18, 8))
 
-# # Histogram 1
-# plt.errorbar(positions1, hist1, yerr=ehist1, fmt='*', color='black',
-#              capsize=2, ecolor='orange', label='TCSPC SYNC vs DET2')
-# plt.plot(x_fine1, y_fine1, 'k--', alpha=0.5)
-# plt.axhline(hmax1, color='black', linestyle='--', alpha=0.25)
-# plt.axvline(xL1, color='black', linestyle='--', alpha=0.25)
-# plt.axvline(xR1, color='black', linestyle='--', alpha=0.25)
-# plt.hlines(hmax1, xL1, xR1, colors='black', linewidth=2,
-#            label=f'FWHM Sync vs Det2 = {fwhm1:.2f}', alpha=0.7)
-# plt.text(0, 4.65e+03, f'{fwhm1:.2f}ps', color='black', ha='center')
+# Histogram 1
+plt.errorbar(positions1, hist1, yerr=ehist1, fmt='*', color='black',
+             capsize=2, ecolor='orange', label='TCSPC SYNC vs DET2')
+plt.plot(x_fine1, y_fine1, 'k--', alpha=0.5)
+plt.axhline(hmax1, color='black', linestyle='--', alpha=0.25)
+plt.axvline(xL1, color='black', linestyle='--', alpha=0.25)
+plt.axvline(xR1, color='black', linestyle='--', alpha=0.25)
+plt.hlines(hmax1, xL1, xR1, colors='black', linewidth=2,
+           label=f'FWHM Sync vs Det2 = {fwhm1:.2f}', alpha=0.7)
+plt.text(0, 4.65e+03, f'{fwhm1:.2f}ps', color='black', ha='center')
 
-# # Histogram 2
-# plt.errorbar(positions2, hist2, yerr=ehist2, fmt='.', color='brown',
-#              capsize=2, ecolor='orange', label='TCSPC SYNC vs DET3')
-# plt.plot(x_fine2, y_fine2, 'brown', linestyle='--', alpha=0.5)
-# plt.axhline(hmax2, color='brown', linestyle='--', alpha=0.25)
-# plt.axvline(xL2, color='brown', linestyle='--', alpha=0.25)
-# plt.axvline(xR2, color='brown', linestyle='--', alpha=0.25)
-# plt.hlines(hmax2, xL2, xR2, colors='brown', linewidth=2,
-#            label=f'FWHM Sync vs Det3 = {fwhm2:.2f}', alpha=0.7)
-# plt.text(0, 7.5e+03, f'{fwhm2:.2f}ps', color='brown', ha='center')
+# Histogram 2
+plt.errorbar(positions2, hist2, yerr=ehist2, fmt='.', color='brown',
+             capsize=2, ecolor='orange', label='TCSPC SYNC vs DET3')
+plt.plot(x_fine2, y_fine2, 'brown', linestyle='--', alpha=0.5)
+plt.axhline(hmax2, color='brown', linestyle='--', alpha=0.25)
+plt.axvline(xL2, color='brown', linestyle='--', alpha=0.25)
+plt.axvline(xR2, color='brown', linestyle='--', alpha=0.25)
+plt.hlines(hmax2, xL2, xR2, colors='brown', linewidth=2,
+           label=f'FWHM Sync vs Det3 = {fwhm2:.2f}', alpha=0.7)
+plt.text(0, 7.5e+03, f'{fwhm2:.2f}ps', color='brown', ha='center')
 
 
 # Histogram 3
@@ -133,7 +133,7 @@ plt.text(0, 2.51e+04, f'{fwhm4:.2f}ps', color='blue', ha='center')
 # plt.axvline(169.8, color='green', linestyle='-.', alpha=0.85, label = 'TCSPC DET2 Second Sidepeak')
 # plt.axvline(75.2, color='black', linestyle='-.', alpha=0.85, label = 'HBT Second Sidepeak')
 
-plt.xlim(-400, +700)
+plt.xlim(-700, +700)
 
 #LOG SCALE STILL DOESN'T WORK !!!!
 # plt.yscale('log')
