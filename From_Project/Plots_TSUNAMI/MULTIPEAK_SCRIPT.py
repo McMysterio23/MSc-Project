@@ -285,8 +285,8 @@ plt.plot(arr, y8, ls='-', color='#8B6AD2', label='Component: Gaussian 6')
 plt.xlim(-580, 580)
 
 # # Now safe to apply log scale!
-# plt.yscale('log')
-# plt.ylim(0.29, max(hist3) * 1.8)
+plt.yscale('log')
+plt.ylim(0.29, max(hist3) * 1.8)
 
 
 plt.ylabel("Counts (a.u.)")
