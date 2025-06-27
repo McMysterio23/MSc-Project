@@ -5,6 +5,11 @@ Created on Wed Jun 11 17:40:47 2025
 @author: Maccarinelli
 """
 
+"""
+Correggi il comportamento della funzione che calcola la FWHM in modo da selezionare l'insieme di punti su cui viene
+calcolata
+"""
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -133,7 +138,7 @@ plt.xlim(-700, +700)
 
 # Now safe to apply log scale!
 plt.yscale('log')
-plt.ylim(0.29, max(hist3) * 1.8)
+plt.ylim(0.29, max(hist2) * 1.8)
 
 plt.ylabel("Counts (a.u.)")
 plt.legend()
