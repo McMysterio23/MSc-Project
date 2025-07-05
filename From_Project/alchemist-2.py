@@ -888,6 +888,10 @@ for key in all_results.keys():
     # Get color and label
     style = plot_styles[key]
 
+
+
+    #If you want to have the plot displayed with absolute distances over the x-Axis make sure to add
+    #as later shown the x array as argument of the function np.abs()
     # Plot with error bars
     plt.errorbar(
         period_offsets_relative,
@@ -909,9 +913,12 @@ plt.yticks(fontsize=15)
 
 
 plt.xlabel('Periods of Distance from τ=0', fontsize = 15)
+# plt.xlabel('Periods of Absolute Distance from τ=0', fontsize = 15)
 plt.ylabel('ΔFWHM relative to τ=0 (ps)', fontsize = 15)
 plt.title(r'$g_{2}(\tau)$ Peak Width Deviation vs Period Distance', fontsize = 15)
 plt.legend()
+# plt.xlim(-25,25)
+# plt.ylim(0,1.8)
 plt.grid(True)
 plt.tight_layout()
 plt.show()
