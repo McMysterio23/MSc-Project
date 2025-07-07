@@ -292,8 +292,8 @@ plt.plot(arr, y8, ls='-', color='#8B6AD2', label='Component: Gaussian 6')
 plt.xlim(-580, 580)
 
 # # Now safe to apply log scale!
-plt.yscale('log')
-plt.ylim(0.29, max(hist3) * 1.8)
+# plt.yscale('log')
+# plt.ylim(0.29, max(hist3) * 1.8)
 
 
 plt.ylabel("Counts (a.u.)")
@@ -688,3 +688,568 @@ plt.legend()
 plt.yscale('log')
 plt.tight_layout()
 plt.show()
+
+
+
+
+# %% Only one function
+
+def make_wrapped_model(fixed_params):
+    param_names = ["A1", "FWHM_1", "A2", "FWHM_2", "C2"]
+
+    def wrapped_model(x, *free_values):
+        values = {}
+        i = 0
+        for name in param_names:
+            if name in fixed_params:
+                values[name] = fixed_params[name]
+            else:
+                values[name] = free_values[i]
+                i += 1
+
+        return (
+            gaussian(x, values["A1"], 0, values["FWHM_1"], 0) +
+            gaussian(x, values["A2"], 0, values["FWHM_2"], values["C2"])
+        )
+
+    return wrapped_model
+
+def do_model_fit(bins, counts, errors, PrintParams=False, View=False,
+                 fixed_params={}):
+    
+    all_params = ["A1", "FWHM_1", "A2", "FWHM_2", "C2"]
+    free_params = [p for p in all_params if p not in fixed_params]
+
+    # Default initial guesses
+    default_guesses = {
+        "A1": 51938.32,
+        "FWHM_1": 72.81,
+        "A2": 3600,
+        "FWHM_2": 80,
+        "C2": 173
+    }
+
+    guess = [default_guesses[p] for p in free_params]
+    lower_bounds = [-600] * len(free_params)
+    upper_bounds = [np.inf] * len(free_params)
+    
+    if len(bins) == len(counts):
+        xdata = bins
+    elif len(bins) == len(counts) + 1:
+        xdata = (bins[:-1] + bins[1:]) / 2
+    else:
+        raise ValueError("Mismatch in bins and counts length")
+
+    model = make_wrapped_model(fixed_params)
+
+    try:
+        popt, pcov = curve_fit(
+            model, xdata, counts, p0=guess,
+            bounds=(lower_bounds, upper_bounds),
+            sigma=errors, absolute_sigma=True, max_nfev=10000
+        )
+    except RuntimeError as e:
+        print("Fit failed:", e)
+        return
+
+    # Merge fitted values into full param list
+    fit_results = {}
+    uncertainties = {}
+    i = 0
+    for p in all_params:
+        if p in fixed_params:
+            fit_results[p] = fixed_params[p]
+            uncertainties[p] = 0
+        else:
+            fit_results[p] = popt[i]
+            uncertainties[p] = np.sqrt(pcov[i, i])
+            i += 1
+
+    # Chi-squared
+    fit_values = model(xdata, *popt)
+    chi_squared = np.sum(((counts - fit_values) / errors) ** 2)
+    dof = len(counts) - len(popt)
+    chi_squared_red = chi_squared / dof
+
+    # Optional print
+    if PrintParams:
+        for p in all_params:
+            val = fit_results[p]
+            err = uncertainties[p]
+            print(f"{p} = {val:.2f} ± {err:.2f}" if err else f"{p} = {val:.2f} (fixed)")
+        print(f"Chi^2: {chi_squared:.2f}")
+        print(f"Reduced Chi^2: {chi_squared_red:.2f}")
+
+    if View:
+        # Plot data + fit + residuals
+        fig, axs = plt.subplots(2, 1, figsize=(8, 6), sharex=True)
+        axs[0].errorbar(xdata, counts, yerr=errors, fmt='.', markersize=3, label='Data')
+        axs[0].plot(xdata, fit_values, '--', label='Model')
+        axs[0].legend()
+        axs[0].set_ylabel("Counts")
+        axs[1].plot(xdata, (counts - fit_values) / errors, '.', color='red', markersize=3)
+        axs[1].axhline(0, color='gray', ls='--')
+        axs[1].set_ylabel("Residuals")
+        axs[1].set_xlabel("t")
+        plt.tight_layout()
+        plt.show()
+
+    return fit_results, uncertainties, chi_squared, chi_squared_red
+        
+
+
+# --- Dynamically find path of the current script and look for .csv ---
+current_dir = Path(__file__).resolve().parent
+csv_files = list(current_dir.glob("*.csv"))
+
+if len(csv_files) != 1:
+    raise RuntimeError(f"Expected exactly one CSV file in folder, found {len(csv_files)}.")
+
+csv_file = csv_files[0]
+
+# --- Load data ---
+df = pd.read_csv(csv_file, sep=";")
+
+positions = df.iloc[:, 0].values
+
+hist3 = df.iloc[:, 3].values
+hist4 = df.iloc[:, 4].values
+
+ehist3 = np.sqrt(hist3)
+ehist4 = np.sqrt(hist4)
+
+
+peak_index3 = np.argmax(hist3)
+peak_index4 = np.argmax(hist4)
+
+peak_position3 = positions[peak_index3]
+peak_position4 = positions[peak_index4]
+
+positions3 = positions.copy() - peak_position3
+positions4 = positions.copy() - peak_position4
+
+
+arr = np.linspace(-1000, 1000, 15000)
+# y1 = gaussian(arr, 55190, 0, 65, 0)
+# y2 = sech2(arr, 55190, 0, 38, 0)
+# y3 = y2 + gaussian(arr, 3550, 0, 80, 173)
+# y4 = y2 + sech2(arr, 3550, 0, 80/1.76, 173)
+
+# Define fixed params outside to reuse in both fit and plotting
+
+# fixed_params = {"C8":-250}
+fixed_params = {}
+# fixed_params = {
+#     "A1": 51938.32,
+#     "FWHM_1": 72.81,
+#     "A2": 3600,
+#     "FWHM_2": 80,
+#     "C2": 173,
+#     "A3": 1920.24,
+#     "FWHM_3":74.8,
+#     "C3" : -88,
+    
+#     "A4": 947.60,
+#     "FWHM_4" :120.28,
+#     "C4" : -291.99,
+#     "A5": 105,
+#     "FWHM_5": 96.41,
+#     "C5": 492.98,
+#     "A6": 32.43,
+#     "FWHM_6": 64.58,
+#     "C6": -505.76
+# }
+
+# Run the fit
+fit_results, errors, chi2, red_chi2 = do_model_fit(
+    positions3, hist3, ehist3 + 0.001,
+    fixed_params=fixed_params,
+    PrintParams=True,
+    View=True
+)
+
+
+# Define all parameter names involved in the model
+param_names = ["A1", "FWHM_1", "A2", "FWHM_2", "C2"]
+
+# Then extract the list of free (non-fixed) parameters
+free_params = [p for p in param_names if p not in fixed_params]
+
+
+# Combine fixed and fitted parameters into a single dictionary
+all_params = {}
+all_params.update(fixed_params)
+all_params.update({p: fit_results[p] for p in free_params})
+
+
+y1 = gaussian(arr, all_params["A1"], 0, all_params["FWHM_1"], 0)
+y2 = gaussian(arr, all_params["A2"], 0, all_params["FWHM_2"], all_params["C2"])
+# y3 = gaussian(arr, all_params["A3"], 0, all_params["FWHM_3"], all_params["C3"])
+
+
+def compute_fwhm(pos, hist):
+    interp_func = interp1d(pos, hist, kind='cubic', fill_value="extrapolate")
+    peak_height = np.max(hist)
+    half_max = peak_height / 2.0
+    x_fine = np.linspace(pos[0], pos[-1], 10000)
+    y_fine = interp_func(x_fine)
+    indices = np.where(np.diff(np.sign(y_fine - half_max)))[0]
+    if len(indices) >= 2:
+        x_left = x_fine[indices[0]]
+        x_right = x_fine[indices[-1]]
+        fwhm = x_right - x_left
+        return x_fine, y_fine, x_left, x_right, half_max, fwhm
+    else:
+        return None, None, None, None, None, None
+
+x_fine3, y_fine3, xL3, xR3, hmax3, fwhm3 = compute_fwhm(positions3, hist3)
+
+from scipy.signal import find_peaks
+
+def compute_fwhm(x, y):
+    half_max = np.max(y) / 2
+    indices = np.where(y >= half_max)[0]
+
+    if len(indices) < 2:
+        return None  # Can't define FWHM
+
+    x1 = x[indices[0]]
+    x2 = x[indices[-1]]
+    return x2 - x1
+
+# Compute model fit over fine array
+model_curve_total = model_curve(arr, *[fit_results[p] for p in free_params])
+
+#Computing the FWHM of the main peak
+fwhm_total = compute_fwhm(arr, model_curve_total)
+print(f"FWHM of total model curve: {fwhm_total:.2f}", 2*'\n')
+
+#Plotting
+plt.figure(figsize=(18, 8))
+plt.errorbar(positions3, hist3, yerr=ehist3, fmt='.', color='green',
+             capsize=2, ecolor='orange', label='HBT Detector2 vs Detector3', markersize = 4)
+
+# Generate model prediction
+model_curve = make_wrapped_model(fixed_params)
+# free_params = [p for p in ["A1", "FWHM_1", "A2", "FWHM_2", "C2", "A3", "FWHM_3", "C3"] if p not in fixed_params]
+x_fit = positions3
+y_fit = model_curve(x_fit, *[fit_results[p] for p in free_params])
+
+plt.plot(x_fit, y_fit, color='red', label='Model fit', ls='-.')
+
+
+# Components
+plt.plot(arr, y1, ls='--', color='blue', label='Component: Gaussian 1')
+plt.plot(arr, y2, ls='--', color='purple', label='Component: Gaussian 2')
+# plt.plot(arr, y3, ls='--', color='gray', label='Component: Gaussian 3')
+
+plt.hlines(hmax3, xL3, xR3, colors='green', linewidth=2,
+           label=f'FWHM HBT = {fwhm_total:.2f}', alpha=0.7)
+
+plt.text(50, 361, f'{fwhm_total:.2f}ps', color='Green', ha='center')
+
+#'lightblue'
+
+plt.xlim(-580, 580)
+
+# # Now safe to apply log scale!
+# plt.yscale('log')
+# plt.ylim(0.29, max(hist3) * 1.8)
+
+
+plt.ylabel("Counts (a.u.)")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+
+# %% Altro istogramma
+
+"""
+Non basta solo una funzione, pare che ci sia qualcosa di strano sotto...
+Devi provare anche con 3 funzioni sotto per poter ottimizzare il tutto...
+
+"""
+
+def make_wrapped_model(fixed_params):
+    param_names = ["A1", "FWHM_1"]
+
+    def wrapped_model(x, *free_values):
+        values = {}
+        i = 0
+        for name in param_names:
+            if name in fixed_params:
+                values[name] = fixed_params[name]
+            else:
+                values[name] = free_values[i]
+                i += 1
+
+        return (
+            sech2(x, values["A1"], 0, values["FWHM_1"]/1.76, 0))
+        
+
+    return wrapped_model
+
+def do_model_fit(bins, counts, errors, PrintParams=False, View=False,
+                 fixed_params={}):
+    
+    all_params = ["A1", "FWHM_1"]
+    free_params = [p for p in all_params if p not in fixed_params]
+
+    # Default initial guesses
+    default_guesses = {
+        "A1": 750.32,
+        "FWHM_1": 50
+    }
+
+    guess = [default_guesses[p] for p in free_params]
+    lower_bounds = [-600] * len(free_params)
+    upper_bounds = [np.inf] * len(free_params)
+    
+    if len(bins) == len(counts):
+        xdata = bins
+    elif len(bins) == len(counts) + 1:
+        xdata = (bins[:-1] + bins[1:]) / 2
+    else:
+        raise ValueError("Mismatch in bins and counts length")
+
+    model = make_wrapped_model(fixed_params)
+
+    try:
+        popt, pcov = curve_fit(
+            model, xdata, counts, p0=guess,
+            bounds=(lower_bounds, upper_bounds),
+            sigma=errors, absolute_sigma=True, max_nfev=10000
+        )
+    except RuntimeError as e:
+        print("Fit failed:", e)
+        return
+
+    # Merge fitted values into full param list
+    fit_results = {}
+    uncertainties = {}
+    i = 0
+    for p in all_params:
+        if p in fixed_params:
+            fit_results[p] = fixed_params[p]
+            uncertainties[p] = 0
+        else:
+            fit_results[p] = popt[i]
+            uncertainties[p] = np.sqrt(pcov[i, i])
+            i += 1
+
+    # Chi-squared
+    fit_values = model(xdata, *popt)
+    chi_squared = np.sum(((counts - fit_values) / errors) ** 2)
+    dof = len(counts) - len(popt)
+    chi_squared_red = chi_squared / dof
+
+    # Optional print
+    if PrintParams:
+        for p in all_params:
+            val = fit_results[p]
+            err = uncertainties[p]
+            print(f"{p} = {val:.2f} ± {err:.2f}" if err else f"{p} = {val:.2f} (fixed)")
+        print(f"Chi^2: {chi_squared:.2f}")
+        print(f"Reduced Chi^2: {chi_squared_red:.2f}")
+
+    if View:
+        # Plot data + fit + residuals
+        fig, axs = plt.subplots(2, 1, figsize=(8, 6), sharex=True)
+        axs[0].errorbar(xdata, counts, yerr=errors, fmt='.', markersize=3, label='Data')
+        axs[0].plot(xdata, fit_values, '--', label='Model')
+        axs[0].legend()
+        axs[0].set_ylabel("Counts")
+        axs[1].plot(xdata, (counts - fit_values) / errors, '.', color='red', markersize=3)
+        axs[1].axhline(0, color='gray', ls='--')
+        axs[1].set_ylabel("Residuals")
+        axs[1].set_xlabel("t")
+        plt.tight_layout()
+        plt.show()
+
+    return fit_results, uncertainties, chi_squared, chi_squared_red
+        
+
+# --- Dynamically find path of the current script and look for .csv ---
+current_dir = Path(__file__).resolve().parent
+csv_files = list(current_dir.glob("*.csv"))
+
+if len(csv_files) != 1:
+    raise RuntimeError(f"Expected exactly one CSV file in folder, found {len(csv_files)}.")
+
+csv_file = csv_files[0]
+
+# --- Load data ---
+df = pd.read_csv(csv_file, sep=";")
+
+positions = df.iloc[:, 0].values
+
+hist3 = df.iloc[:, 3].values
+hist4 = df.iloc[:, 4].values
+
+ehist3 = np.sqrt(hist3)
+ehist4 = np.sqrt(hist4)
+
+
+peak_index3 = np.argmax(hist3)
+peak_index4 = np.argmax(hist4)
+
+peak_position3 = positions[peak_index3]
+peak_position4 = positions[peak_index4]
+
+positions3 = positions.copy() - peak_position3
+positions4 = positions.copy() - peak_position4
+
+
+
+selection_mask = (positions > -1000) & (positions < 1000)
+#Restricting the arrays to the current interval being studied !
+
+positions4 = positions4[selection_mask]
+
+
+hist4 = hist4[selection_mask]
+
+
+ehist4 = ehist4[selection_mask]
+
+
+arr = np.linspace(-1000, 1000, 15000)
+# y1 = gaussian(arr, 55190, 0, 65, 0)
+# y2 = sech2(arr, 55190, 0, 38, 0)
+# y3 = y2 + gaussian(arr, 3550, 0, 80, 173)
+# y4 = y2 + sech2(arr, 3550, 0, 80/1.76, 173)
+
+# Define fixed params outside to reuse in both fit and plotting
+
+# fixed_params = {"C8":-250}
+# fixed_params = {}
+fixed_params = {
+    # "A1": 780.32}
+    # "FWHM_1": 72.81,
+#     "A2": 3600,
+#     "FWHM_2": 80,
+#     "C2": 173,
+#     "A3": 1920.24,
+#     "FWHM_3":74.8,
+#     "C3" : -88,
+    
+#     "A4": 947.60,
+#     "FWHM_4" :120.28,
+#     "C4" : -291.99,
+#     "A5": 105,
+#     "FWHM_5": 96.41,
+#     "C5": 492.98,
+#     "A6": 32.43,
+#     "FWHM_6": 64.58,
+#     "C6": -505.76
+}
+
+# Run the fit
+fit_results, errors, chi2, red_chi2 = do_model_fit(
+    positions4, hist4, ehist4 + 0.0001,
+    fixed_params=fixed_params,
+    PrintParams=True,
+    View=True
+)
+
+
+# Define all parameter names involved in the model
+param_names = ["A1", "FWHM_1"]
+
+# Then extract the list of free (non-fixed) parameters
+free_params = [p for p in param_names if p not in fixed_params]
+
+
+# Combine fixed and fitted parameters into a single dictionary
+all_params = {}
+all_params.update(fixed_params)
+all_params.update({p: fit_results[p] for p in free_params})
+
+
+y1 = gaussian(arr, all_params["A1"], 0, all_params["FWHM_1"], 0)
+# y2 = gaussian(arr, all_params["A2"], 0, all_params["FWHM_2"], all_params["C2"])
+# y3 = gaussian(arr, all_params["A3"], 0, all_params["FWHM_3"], all_params["C3"])
+
+
+def compute_fwhm(pos, hist):
+    interp_func = interp1d(pos, hist, kind='cubic', fill_value="extrapolate")
+    peak_height = np.max(hist)
+    half_max = peak_height / 2.0
+    x_fine = np.linspace(pos[0], pos[-1], 10000)
+    y_fine = interp_func(x_fine)
+    indices = np.where(np.diff(np.sign(y_fine - half_max)))[0]
+    if len(indices) >= 2:
+        x_left = x_fine[indices[0]]
+        x_right = x_fine[indices[-1]]
+        fwhm = x_right - x_left
+        return x_fine, y_fine, x_left, x_right, half_max, fwhm
+    else:
+        return None, None, None, None, None, None
+
+x_fine3, y_fine3, xL3, xR3, hmax3, fwhm3 = compute_fwhm(positions3, hist3)
+
+from scipy.signal import find_peaks
+
+def compute_fwhm(x, y):
+    half_max = np.max(y) / 2
+    indices = np.where(y >= half_max)[0]
+
+    if len(indices) < 2:
+        return None  # Can't define FWHM
+
+    x1 = x[indices[0]]
+    x2 = x[indices[-1]]
+    return x2 - x1
+
+# Compute model fit over fine array
+
+model_curve = make_wrapped_model(fixed_params)
+
+model_curve_total = model_curve(arr, *[fit_results[p] for p in free_params])
+
+#Computing the FWHM of the main peak
+fwhm_total = compute_fwhm(arr, model_curve_total)
+print(f"FWHM of total model curve: {fwhm_total:.2f}", 2*'\n')
+
+#Plotting
+plt.figure(figsize=(18, 8))
+plt.errorbar(positions4, hist4, yerr=ehist4, fmt='.', color='green',
+             capsize=2, ecolor='orange', label='HBT Detector2 vs Detector3', markersize = 4)
+
+# Generate model prediction
+model_curve = make_wrapped_model(fixed_params)
+# free_params = [p for p in ["A1", "FWHM_1", "A2", "FWHM_2", "C2", "A3", "FWHM_3", "C3"] if p not in fixed_params]
+x_fit = positions4
+y_fit = model_curve(x_fit, *[fit_results[p] for p in free_params])
+
+plt.plot(x_fit, y_fit, color='red', label='Model fit', ls='-.')
+
+
+# Components
+plt.plot(arr, y1, ls='--', color='blue', label='Component: Gaussian 1')
+# plt.plot(arr, y2, ls='--', color='purple', label='Component: Gaussian 2')
+# plt.plot(arr, y3, ls='--', color='gray', label='Component: Gaussian 3')
+
+# plt.hlines(hmax3, xL3, xR3, colors='green', linewidth=2,
+#            label=f'FWHM HBT = {fwhm_total:.2f}', alpha=0.7)
+
+# plt.text(50, 361, f'{fwhm_total:.2f}ps', color='Green', ha='center')
+
+#'lightblue'
+
+plt.xlim(-580, 580)
+
+# # Now safe to apply log scale!
+# plt.yscale('log')
+# plt.ylim(0.29, max(hist3) * 1.8)
+
+
+plt.ylabel("Counts (a.u.)")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+

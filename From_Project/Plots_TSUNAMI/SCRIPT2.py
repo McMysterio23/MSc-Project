@@ -63,6 +63,24 @@ positions3 = positions.copy() - peak_position3
 positions4 = positions.copy() - peak_position4
 
 
+
+selection_mask = (positions > -12000) & (positions < 12000)
+#Restricting the arrays to the current interval being studied !
+positions1 = positions1[selection_mask]
+positions2 = positions2[selection_mask]
+positions3 = positions3[selection_mask]
+positions4 = positions4[selection_mask]
+
+hist1 = hist1[selection_mask]
+hist2 = hist2[selection_mask]
+hist3 = hist3[selection_mask]
+hist4 = hist4[selection_mask]
+
+ehist1 = ehist1[selection_mask]
+ehist2 = ehist2[selection_mask]
+ehist3 = ehist3[selection_mask]
+ehist4 = ehist4[selection_mask]
+
 def compute_fwhm(pos, hist):
     interp_func = interp1d(pos, hist, kind='cubic', fill_value="extrapolate")
     peak_height = np.max(hist)
@@ -94,7 +112,7 @@ plt.axvline(xL1, color='black', linestyle='--', alpha=0.25)
 plt.axvline(xR1, color='black', linestyle='--', alpha=0.25)
 plt.hlines(hmax1, xL1, xR1, colors='black', linewidth=2,
            label=f'FWHM Sync vs Det2 = {fwhm1:.2f}', alpha=0.7)
-plt.text(0, 4.65e+03, f'{fwhm1:.2f}ps', color='black', ha='center')
+# plt.text(0, 4.65e+03, f'{fwhm1:.2f}ps', color='black', ha='center')
 
 # Histogram 2
 plt.errorbar(positions2, hist2, yerr=ehist2, fmt='.', color='brown',
@@ -105,7 +123,7 @@ plt.axvline(xL2, color='brown', linestyle='--', alpha=0.25)
 plt.axvline(xR2, color='brown', linestyle='--', alpha=0.25)
 plt.hlines(hmax2, xL2, xR2, colors='brown', linewidth=2,
            label=f'FWHM Sync vs Det3 = {fwhm2:.2f}', alpha=0.7)
-plt.text(0, 7.5e+03, f'{fwhm2:.2f}ps', color='brown', ha='center')
+# plt.text(0, 7.5e+03, f'{fwhm2:.2f}ps', color='brown', ha='center')
 
 # Histogram 3
 plt.errorbar(positions3, hist3, yerr=ehist3, fmt='.', color='green',
@@ -116,7 +134,7 @@ plt.axvline(xL3, color='green', linestyle='--', alpha=0.25)
 plt.axvline(xR3, color='green', linestyle='--', alpha=0.25)
 plt.hlines(hmax3, xL3, xR3, colors='green', linewidth=2,
            label=f'FWHM HBT = {fwhm3:.2f}', alpha=0.7)
-plt.text(0, 2.81e+04, f'{fwhm3:.2f}ps', color='Green', ha='center')
+# plt.text(0, 2.81e+04, f'{fwhm3:.2f}ps', color='Green', ha='center')
 
 
 #  Histogram 4
@@ -128,11 +146,11 @@ plt.axvline(xL4, color='blue', linestyle='--', alpha=0.25)
 plt.axvline(xR4, color='blue', linestyle='--', alpha=0.25)
 plt.hlines(hmax4, xL4, xR4, colors='blue', linewidth=2,
            label=f'FWHM HBT Det3 vs Det2= {fwhm4:.2f}', alpha=0.7)
-plt.text(0, 2.51e+04, f'{fwhm4:.2f}ps', color='blue', ha='center')
+# plt.text(0, 2.51e+04, f'{fwhm4:.2f}ps', color='blue', ha='center')
 
-plt.axvline(174.4, color='brown', linestyle='-.', alpha=0.85, label='TCSPC DET3 Second Sidepeak')
-plt.axvline(169.8, color='green', linestyle='-.', alpha=0.85, label='TCSPC DET2 Second Sidepeak')
-plt.axvline(75.2, color='black', linestyle='-.', alpha=0.85, label='HBT Second Sidepeak')
+# plt.axvline(174.4, color='brown', linestyle='-.', alpha=0.85, label='TCSPC DET3 Second Sidepeak')
+# plt.axvline(169.8, color='green', linestyle='-.', alpha=0.85, label='TCSPC DET2 Second Sidepeak')
+# plt.axvline(75.2, color='black', linestyle='-.', alpha=0.85, label='HBT Second Sidepeak')
 
 plt.xlim(-700, +700)
 

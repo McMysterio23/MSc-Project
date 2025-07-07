@@ -888,10 +888,6 @@ for key in all_results.keys():
     # Get color and label
     style = plot_styles[key]
 
-
-
-    #If you want to have the plot displayed with absolute distances over the x-Axis make sure to add
-    #as later shown the x array as argument of the function np.abs()
     # Plot with error bars
     plt.errorbar(
         period_offsets_relative,
@@ -913,12 +909,9 @@ plt.yticks(fontsize=15)
 
 
 plt.xlabel('Periods of Distance from τ=0', fontsize = 15)
-# plt.xlabel('Periods of Absolute Distance from τ=0', fontsize = 15)
 plt.ylabel('ΔFWHM relative to τ=0 (ps)', fontsize = 15)
 plt.title(r'$g_{2}(\tau)$ Peak Width Deviation vs Period Distance', fontsize = 15)
 plt.legend()
-# plt.xlim(-25,25)
-# plt.ylim(0,1.8)
 plt.grid(True)
 plt.tight_layout()
 plt.show()
@@ -1653,7 +1646,7 @@ def GVD_PulseBroadening_Sech2Shape(INPUT_FWHM, CableLength):
     
     return (tau_0 * 1e-15 * np.sqrt(1+(CableLength/Ld_cm)**2)) * 1.76 * 1e+12
 
-print('The FWHM of the optical pulses after ~15m of HP780 fiber is :', GVD_PulseBroadening_Sech2Shape(50.3, 1500), '[ps]')
+print('The FWHM of the optical pulses after ~15m of HP780 fiber is :', GVD_PulseBroadening_Sech2Shape(50, 1205), '[ps]')
 # %% Part2
 import numpy as np
 
@@ -1695,7 +1688,7 @@ def GVD_780HP_Sech2Broadening(input_fwhm_fs, fiber_length_cm, wavelength_nm):
 
     return output_fwhm_ps
 
-result = GVD_780HP_Sech2Broadening(45, 1500, 897)
+result = GVD_780HP_Sech2Broadening(80, 1205, 897)
 print(f"Output FWHM: {result:.3f} ps")
 
 # %% Following WL new orders : HUGE Retreat to understand better what we're doing !!!
