@@ -343,14 +343,21 @@ peak_data1 = np.column_stack((peak_positions, peak_heights))
 
 plt.figure(figsize = (8,5))
 plt.plot(arr, model_curve_total, label="Model")
-plt.plot(peak_positions, peak_heights, 'rx', label='Detected Peaks')
-plt.xlabel("Position")
-plt.ylabel("Model Counts")
-plt.title("Detected Peaks in Full Model")
+plt.plot(peak_positions, peak_heights, '*', label='Detected Peaks', markersize = 10, color = 'red')
+plt.xlabel("Position", fontsize = 16)
+plt.ylabel("Counts", fontsize = 16)
+plt.title("Detected Peaks", fontsize = 16)
 plt.legend()
 plt.yscale('log')
-plt.ylim(0.29, max(hist3) * 1.8)
+plt.ylim(4, max(hist3) * 1.8)
+
 plt.grid(True)
+
+# Customize ticks
+plt.tick_params(axis='both', which='major', labelsize=16, length=8, width=1.5)
+plt.tick_params(axis='both', which='minor', labelsize=16, length=4, width=1)
+
+
 plt.tight_layout()
 plt.show()
 # %% Salvataggio
@@ -675,17 +682,36 @@ plt.tight_layout()
 plt.show()
 # %% Plottaggio delle posizioni dei picchi rilevati in entrambi gli istogrammi di HBT per poter farne una correlazione !!
 
+
+#Green Fluo : #2AE519
+
+
 plt.figure(figsize=(10,6))
-plt.scatter(peak_data1[:, 0], peak_data1[:, 1], marker='*', label = 'HBT Detector2 vs Detector3', color = '#2AE519')  # x = positions, y = heights
-plt.scatter(peak_data2[:, 0], peak_data2[:, 1], marker='o', label = 'HBT Detector3 vs Detector2', color = '#40DCFF')
-plt.scatter(-peak_data1[:, 0], peak_data1[:, 1], marker='*', label = 'HBT Detector2 vs Detector3 (Time reverted)', color = '#E4080A', s = 5)
+plt.scatter(peak_data1[:, 0], peak_data1[:, 1], marker='*', label = 'HBT Detector2 vs Detector3', color = 'Red', s = 75)  # x = positions, y = heights
+# plt.scatter(peak_data2[:, 0], peak_data2[:, 1], marker='o', label = 'HBT Detector3 vs Detector2', color = '#40DCFF')
+# plt.scatter(-peak_data1[:, 0], peak_data1[:, 1], marker='*', label = 'HBT Detector2 vs Detector3 (Time reverted)', color = '#E4080A', s = 5)
 
-plt.xlabel("Position [t]")
-plt.ylabel("Counts")
-plt.title("Detected Peaks with the refined model")
+plt.xlabel("Position [t]", fontsize=16)
+plt.ylabel("Counts", fontsize=16)
+plt.title("Detected Peaks in HBT Histogram", fontsize = 16)
 
-plt.legend()
+# Customize ticks
+plt.tick_params(axis='both', which='major', labelsize=16, length=8, width=1.5)
+plt.tick_params(axis='both', which='minor', labelsize=16, length=4, width=1)
+
+# Set other plot settings
 plt.yscale('log')
+plt.ylim(0.2, 1e6)
+plt.xlim(-800, 800)
+
+# Legend with larger font
+# plt.legend(fontsize=10,           # Bigger text
+#            handlelength=3,        # Length of the legend lines
+#            handleheight=2,        # Height of the legend handles (vertical space)
+#            handletextpad=1.5,     # Space between handle and text
+#            markerscale=2)
+
+# plt.grid(True)
 plt.tight_layout()
 plt.show()
 

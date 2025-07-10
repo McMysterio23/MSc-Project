@@ -30,7 +30,6 @@ csv_file = csv_files[0]
 df = pd.read_csv(csv_file, sep=";")
 
 positions = df.iloc[:, 0].values
-
 hist1 = df.iloc[:, 1].values
 hist2 = df.iloc[:, 2].values
 hist3 = df.iloc[:, 3].values
@@ -148,26 +147,23 @@ x_fine3, y_fine3, xL3, xR3, hmax3, fwhm3 = compute_fwhm(positions3, hist3)
 x_fine4, y_fine4, xL4, xR4, hmax4, fwhm4 = compute_fwhm(positions4, hist4)
 
 # --- Plot ---
-plt.figure(figsize=(12, 8))
+plt.figure(figsize=(18, 8))
 
 plt.errorbar(positions1 /1000, hist1, yerr=ehist1, fmt='*', color='black',
              capsize=2, ecolor='orange', label='TCSPC SYNC vs DET2')
 plt.plot(x_fine1/1000, y_fine1, 'k--', alpha=0.5)
-plt.plot(positions1/1000, hist1, 'black', linestyle='--', alpha=0.25)
 
 plt.errorbar(positions2/1000, hist2, yerr=ehist2, fmt='.', color='brown',
              capsize=2, ecolor='orange', label='TCSPC SYNC vs DET3')
 plt.plot(x_fine2/1000, y_fine2, 'brown', linestyle='--', alpha=0.5)
-plt.plot(positions2/1000, hist2, 'brown', linestyle='--', alpha=0.25)
 
 plt.errorbar(positions3/1000, hist3, yerr=ehist3, fmt='.', color='green',
              capsize=2, ecolor='orange', label='HBT Detector2 vs Detector3')
 plt.plot(x_fine3/1000, y_fine3, 'green', linestyle='--', alpha=0.5)
-plt.plot(positions3/1000, hist3, 'green', linestyle='--', alpha=0.25)
 
 plt.errorbar(positions4/1000, hist4, yerr=ehist4, fmt='.', color='blue',
              capsize=2, ecolor='orange', label='HBT Detector3 vs Detector2')
-plt.plot(positions4/1000, hist4, 'blue', linestyle='--', alpha=0.25)
+plt.plot(positions4/1000, hist4, 'blue', linestyle='--', alpha=0.5)
 
 plt.xlabel("Time Delay (ns)")
 plt.ylabel("Counts (a.u.)")
@@ -177,7 +173,7 @@ plt.grid(True)
 plt.tight_layout()
 plt.show()
 
-plt.figure(figsize=(12, 8))
+plt.figure(figsize=(18, 8))
 
 plt.errorbar(positions1  , hist1, yerr=ehist1, fmt='*', color='black',
              capsize=2, ecolor='orange', label='TCSPC SYNC vs DET2')
@@ -195,26 +191,12 @@ plt.errorbar(positions4 , hist4, yerr=ehist4, fmt='.', color='blue',
              capsize=2, ecolor='orange', label='HBT Detector3 vs Detector2')
 plt.plot(positions4 , hist4, 'blue', linestyle='--', alpha=0.5)
 
-# Set axis labels with larger font
-plt.xlabel("Time Delay (ps)", fontsize=16)
-plt.ylabel("Counts (a.u.)", fontsize=16)
-
-# Customize ticks
-plt.tick_params(axis='both', which='major', labelsize=14, length=8, width=1.5)
-plt.tick_params(axis='both', which='minor', labelsize=12, length=4, width=1)
-
-# Set other plot settings
+plt.xlabel("Time Delay (ps)")
+plt.ylabel("Counts (a.u.)")
 plt.yscale('log')
-plt.ylim(0.2, 1e6)
-plt.xlim(-800, 800)
-
-# Legend with larger font
-plt.legend(fontsize=14,           # Bigger text
-           handlelength=3,        # Length of the legend lines
-           handleheight=2,        # Height of the legend handles (vertical space)
-           handletextpad=1.5,     # Space between handle and text
-           markerscale=2)
-
+plt.ylim(0.2)
+plt.xlim(-800, +800)
+plt.legend()
 plt.grid(True)
 plt.tight_layout()
 plt.show()
