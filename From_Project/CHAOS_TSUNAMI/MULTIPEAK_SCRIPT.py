@@ -341,22 +341,30 @@ peak_data1 = np.column_stack((peak_positions, peak_heights))
 
 
 
-plt.figure(figsize = (8,5))
-plt.plot(arr, model_curve_total, label="Model")
-plt.plot(peak_positions, peak_heights, '*', label='Detected Peaks', markersize = 10, color = 'red')
-plt.xlabel("Position", fontsize = 16)
-plt.ylabel("Counts", fontsize = 16)
-plt.title("Detected Peaks", fontsize = 16)
-plt.legend()
+plt.figure(figsize = (12,8))
+plt.errorbar(positions3, hist3, yerr=ehist3, fmt='.', color='green',
+             capsize=1, ecolor=(0.2, 0.2, 0.2, 0.3), label='HBT data points', markersize = 2)
+plt.plot(arr, model_curve_total, label="Fit", color = 'red')
+# plt.plot(peak_positions, peak_heights, '*', label='Detected Peaks', markersize = 15, color = 'red')
+plt.xlabel("Position [ps]", fontsize = 16)
+plt.ylabel("Counts (a.u.)", fontsize = 16)
+plt.title("Multi-peak fit of HBT Histogram", fontsize = 16)
+# plt.legend()
 plt.yscale('log')
 plt.ylim(4, max(hist3) * 1.8)
+plt.xlim(-750, 750)
 
 plt.grid(True)
 
 # Customize ticks
 plt.tick_params(axis='both', which='major', labelsize=16, length=8, width=1.5)
 plt.tick_params(axis='both', which='minor', labelsize=16, length=4, width=1)
-
+# Legend with larger font
+plt.legend(fontsize=14,           # Bigger text
+           handlelength=3,        # Length of the legend lines
+           handleheight=2,        # Height of the legend handles (vertical space)
+           handletextpad=1.5,     # Space between handle and text
+           markerscale=5)
 
 plt.tight_layout()
 plt.show()
