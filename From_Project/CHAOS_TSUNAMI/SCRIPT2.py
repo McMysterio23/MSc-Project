@@ -104,7 +104,7 @@ x_fine4, y_fine4, xL4, xR4, hmax4, fwhm4 = compute_fwhm(positions4, hist4)
 plt.figure(figsize=(12, 8))
 
 # Histogram 1
-plt.errorbar(positions1, hist1, yerr=ehist1, fmt='*', color='black',
+plt.errorbar(positions1, hist1, yerr=ehist1, fmt='.', color='black',
              capsize=2, ecolor='orange', label='TCSPC SYNC vs DET2')
 plt.plot(x_fine1, y_fine1, 'k--', alpha=0.5)
 # plt.axhline(hmax1, color='black', linestyle='--', alpha=0.25)
@@ -169,7 +169,7 @@ plt.legend(fontsize=14,           # Bigger text
            handlelength=3,        # Length of the legend lines
            handleheight=2,        # Height of the legend handles (vertical space)
            handletextpad=1.5,     # Space between handle and text
-           markerscale=2)
+           markerscale=4)
 # plt.legend()
 plt.grid(True, which="both", linestyle="--", linewidth=0.5)
 plt.tight_layout()

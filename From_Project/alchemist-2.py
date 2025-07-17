@@ -1646,7 +1646,7 @@ def GVD_PulseBroadening_Sech2Shape(INPUT_FWHM, CableLength):
     
     return (tau_0 * 1e-15 * np.sqrt(1+(CableLength/Ld_cm)**2)) * 1.76 * 1e+12
 
-print('The FWHM of the optical pulses after ~15m of HP780 fiber is :', GVD_PulseBroadening_Sech2Shape(50, 1205), '[ps]')
+print('The FWHM of the optical pulses after ~1205cm of HP780 fiber is :', GVD_PulseBroadening_Sech2Shape(52.3, 1205), '[ps]')
 # %% Part2
 import numpy as np
 
@@ -1688,7 +1688,7 @@ def GVD_780HP_Sech2Broadening(input_fwhm_fs, fiber_length_cm, wavelength_nm):
 
     return output_fwhm_ps
 
-result = GVD_780HP_Sech2Broadening(80, 1205, 897)
+result = GVD_780HP_Sech2Broadening(80, 1205, 890)
 print(f"Output FWHM: {result:.3f} ps")
 
 # %% Following WL new orders : HUGE Retreat to understand better what we're doing !!!
