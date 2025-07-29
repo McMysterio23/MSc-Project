@@ -22,10 +22,10 @@ file_list = [f.name for f in folder_path.iterdir() if f.is_file() and f.suffix =
 names = [file_list[0], file_list[1], file_list[2], file_list[3], file_list[4], file_list[5], file_list[6], file_list[7],
          file_list[8], file_list[9]]
 
-PATH_TSUNAMI = Path('ModeLockedLaser/NewBeginning')
-folder_path_tsu = PATH_TSUNAMI
-file_list_TSUNAMI_bin = [f.name for f in folder_path_tsu.iterdir() if f.is_file() and f.suffix == '.bin']
-names_tsu = [file_list_TSUNAMI_bin[0], file_list_TSUNAMI_bin[1], file_list_TSUNAMI_bin[2]]
+# PATH_TSUNAMI = Path('ModeLockedLaser/NewBeginning')
+# folder_path_tsu = PATH_TSUNAMI
+# file_list_TSUNAMI_bin = [f.name for f in folder_path_tsu.iterdir() if f.is_file() and f.suffix == '.bin']
+# names_tsu = [file_list_TSUNAMI_bin[0], file_list_TSUNAMI_bin[1], file_list_TSUNAMI_bin[2]]
 
 """
 At the moment there is in the data folder this set of files:
@@ -371,7 +371,7 @@ plt.yticks(fontsize=13)
 # Legend (if you want it)
 # plt.legend(fontsize=14, loc='best', frameon=True)
 # plt.xlim((10250, +55000))
-plt.xlim((+2500000, +3100000))
+plt.xlim((-25000,25000))
 plt.ylim((-3, +150))
 plt.tight_layout()
 plt.show()
@@ -457,7 +457,71 @@ print(f"\nThe peak with the minimum FWHM, which is {FWHMs[index_min]}[ps] is loc
 Offset = -centri[index_min]
 print(f"\nThe Offset that will be added to the tau axis is :{Offset} [ps]")
 
-# %% # %% 4th PART OF THE SCRIPT : Add the Offset to all relevant arrays
+# %% Visualizzazione di un solo fit gaussiano sopra ai datapoints
+
+from src.Librerie import Do_Gauss_Fit_v4
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Seleziona l'intervallo da usare (es: primo intervallo -> indice 0)
+i = 197
+left = LEFT[i]
+right = RIGHT[i]
+
+# Creazione maschera di selezione
+selection_mask = (taus > left) & (taus < right)
+
+# Restrizione degli array all'intervallo selezionato
+Selection_Taus = taus[selection_mask]
+Selected_Ncounts = Ncounts[selection_mask]
+selected_errors = ErrNcounts[selection_mask]
+
+# Filtraggio errori non validi
+valid_mask = (selected_errors > 0) & np.isfinite(selected_errors) & np.isfinite(Selected_Ncounts)
+Selection_Taus = Selection_Taus[valid_mask]
+Selected_Ncounts = Selected_Ncounts[valid_mask]
+selected_errors = selected_errors[valid_mask]
+
+# Check finale prima del fit
+if Selection_Taus.shape[0] == Selected_Ncounts.shape[0] == selected_errors.shape[0] and Selection_Taus.shape[0] > 0:
+    try:
+        fit_result = Do_Gauss_Fit_v4(Selection_Taus, Selected_Ncounts, selected_errors, True)
+        
+        # Estrazione parametri del fit
+        A = fit_result.loc[0]["Value"]
+        offset = fit_result.loc[1]["Value"]
+        FWHM = fit_result.loc[2]["Value"]
+        center = fit_result.loc[3]["Value"]
+        
+        # Valori teorici dal fit
+        x_fit = np.linspace(Selection_Taus.min(), Selection_Taus.max(), 1000)
+        y_fit = gaussian(x_fit, A, offset, FWHM, center)
+
+        # Plot dei dati e del fit
+        plt.figure(figsize=(10,6))
+        plt.errorbar(Selection_Taus, Selected_Ncounts, yerr=selected_errors, fmt='o', color='black', label='Data Points', markersize=3, capsize=2)
+        plt.plot(x_fit, y_fit, color='red', label='Gaussian Fit')
+        # plt.title(f"Fit Gaussiano nell'intervallo [{left}, {right}]")
+        plt.xlabel(r'$\tau$ [ps]', fontsize = 15)
+        plt.ylabel('Counts (a.u.)', fontsize = 15)
+        
+        # Increase tick size
+        plt.xticks(fontsize=15)
+        plt.yticks(fontsize=15)
+        
+        plt.legend(fontsize=15, loc='best', frameon=True)
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+
+    except Exception as e:
+        print(f"Errore nel fit: {e}")
+else:
+    print("Dati insufficienti o mismatch, impossibile eseguire il fit.")
+
+
+# %% 4th PART OF THE SCRIPT : Add the Offset to all relevant arrays
 
 """
 IMPORTANT !!!!!!!!!!!
@@ -1646,7 +1710,7 @@ def GVD_PulseBroadening_Sech2Shape(INPUT_FWHM, CableLength):
     
     return (tau_0 * 1e-15 * np.sqrt(1+(CableLength/Ld_cm)**2)) * 1.76 * 1e+12
 
-print('The FWHM of the optical pulses after ~1205cm of HP780 fiber is :', GVD_PulseBroadening_Sech2Shape(52.3, 1205), '[ps]')
+print('The FWHM of the optical pulses after ~15m of HP780 fiber is :', GVD_PulseBroadening_Sech2Shape(50, 1205), '[ps]')
 # %% Part2
 import numpy as np
 
@@ -1688,7 +1752,7 @@ def GVD_780HP_Sech2Broadening(input_fwhm_fs, fiber_length_cm, wavelength_nm):
 
     return output_fwhm_ps
 
-result = GVD_780HP_Sech2Broadening(80, 1205, 890)
+result = GVD_780HP_Sech2Broadening(80, 1205, 897)
 print(f"Output FWHM: {result:.3f} ps")
 
 # %% Following WL new orders : HUGE Retreat to understand better what we're doing !!!
@@ -1810,3 +1874,65 @@ plt.tight_layout()
 plt.show()
 
 
+# %% Some example plots for the thesis
+
+
+
+
+
+from src.Librerie import gaussian
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Data setup
+arr1 = np.linspace(0, 5000, 1000)
+y = gaussian(arr1, 1750, 0, 60, 150)
+y_norm = y / max(y)
+bin_width = arr1[1] - arr1[0]
+
+# Star photon definition
+star_x = 120
+star_index = np.argmin(np.abs(arr1 - star_x))
+star_y = y[star_index]
+star_y_norm = y_norm[star_index]
+
+# --- First Plot: Raw Counts with Star ---
+plt.figure()
+plt.plot(arr1, y, color='black', label = 'Optical Pulse')
+plt.scatter(star_x, star_y, marker='*', color='red', s=450, label='Detected Photon')
+
+plt.xlim(0, 300)
+plt.xticks(fontsize=15)
+plt.yticks(fontsize=15)
+plt.ylabel('Counts', fontsize=15)
+plt.xlabel('Time [ps]', fontsize=15)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+# --- Second Plot: Normalized Probability + Histogram with Highlighted Bin ---
+plt.figure()
+
+# Bin edges and centers
+bins = np.append(arr1 - bin_width / 2, arr1[-1] + bin_width / 2)
+bin_centers = arr1  # already centered
+
+# Draw normal histogram bars
+for i in range(len(bin_centers)):
+    left = bins[i]
+    height = y_norm[i]
+    color = 'red' if left <= star_x < left + bin_width else 'red'
+    alpha = 0.6 if left <= star_x < left + bin_width else 0.2
+    plt.bar(bin_centers[i], height, width=bin_width, color=color, alpha=alpha, align='center')
+
+# Scatter plot and red star
+plt.scatter(arr1, y_norm, color='black', s=8, label='P(t)')
+plt.plot(star_x, star_y_norm, marker='*', color='red', markersize=25)
+
+plt.xlim(0, 300)
+plt.xticks(fontsize=15)
+plt.yticks(fontsize=15)
+plt.ylabel('P(t)', fontsize=15)
+plt.xlabel('Time [ps]', fontsize=15)
+plt.tight_layout()
+plt.show()
